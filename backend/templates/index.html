@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Hypothesis Generator</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+</head>
+<body>
+
+  <header>
+    <h1>🔬 AI Hypothesis Generator</h1>
+    <p>Upload any research paper PDF and get structured insights instantly</p>
+  </header>
+
+  <main>
+
+    <div class="upload-card">
+      <div class="upload-area">
+        <span class="upload-icon">📄</span>
+        <p>Click to browse or drag and drop your PDF</p>
+        <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(this)">
+        <div id="file-name" class="file-name"></div>
+      </div>
+      <button id="analyze-btn" onclick="analyzePaper()" disabled>
+        Analyze Paper
+      </button>
+    </div>
+
+    <div id="loader" class="loader" style="display:none">
+      <div class="spinner"></div>
+      <p id="loader-text">Starting analysis...</p>
+    </div>
+
+    <div id="error-box" class="error-box" style="display:none"></div>
+
+    <div id="results" style="display:none">
+
+      <!-- SUMMARY -->
+      <section class="result-section">
+        <h2>📄 Paper Summary</h2>
+        <div class="content-box">
+          <p id="summary-text"></p>
+        </div>
+      </section>
+
+      <!-- KEY CONCEPTS -->
+      <section class="result-section">
+        <h2>🔑 Key Concepts</h2>
+        <p class="hint">Important topics, methods and techniques extracted from the paper</p>
+        <div id="concepts-container"></div>
+      </section>
+
+      <!-- KNOWLEDGE GRAPH -->
+      <section class="result-section">
+        <h2>🕸️ Knowledge Graph</h2>
+        <p class="hint">Nodes = Key Concepts | Edges = Relationships between them</p>
+        <div id="graph-controls">
+          <button onclick="resetGraph()">Reset View</button>
+          <button onclick="fitGraph()">Fit Graph</button>
+        </div>
+        <div id="cy"></div>
+      </section>
+
+      <!-- RESEARCH GAPS -->
+      <section class="result-section">
+        <h2>🔍 Research Gaps</h2>
+        <div id="gaps-container"></div>
+      </section>
+
+      <!-- HYPOTHESES -->
+      <section class="result-section">
+        <h2>💡 Generated Hypotheses</h2>
+        <div id="hypotheses-container"></div>
+      </section>
+
+      <!-- EXPERIMENTS -->
+      <section class="result-section">
+        <h2>🧪 Experiment Designs</h2>
+        <div id="experiments-container"></div>
+      </section>
+
+    </div>
+
+  </main>
+
+  <script src="/static/script.js"></script>
+
+</body>
+</html>
