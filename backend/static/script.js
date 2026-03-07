@@ -1,6 +1,6 @@
 // scripts.js
 let selectedFile = null;
-let cyInstance = null; // Store cytoscape instance for reset/fit buttons
+let cyInstance = null;
 
 const loaderMessages = [
   "Extracting text from PDF...",
@@ -88,7 +88,6 @@ function displayConcepts(concepts) {
     return;
   }
 
-  // Display each concept as a pill/tag
   concepts.forEach(concept => {
     const tag = document.createElement('span');
     tag.className = 'concept-tag';
@@ -100,27 +99,27 @@ function displayConcepts(concepts) {
 
 function displayGraph(graph) {
   const container = document.getElementById('cy');
-  container.innerHTML = ''; // Clear previous graph
+  container.innerHTML = '';
 
   if (!graph || !graph.nodes || graph.nodes.length === 0) {
     container.innerHTML = "<p style='padding:20px;color:#888'>No graph data available</p>";
     return;
   }
 
-  // Only keep edges where both source and target nodes exist
+  // Only keep valid edges where both nodes exist
   const nodeIds = new Set(graph.nodes);
   const validEdges = graph.edges.filter(e =>
     e.subject && e.object &&
     nodeIds.has(e.subject) &&
     nodeIds.has(e.object) &&
-    e.subject !== e.object  // Remove self-loops
+    e.subject !== e.object
   );
 
   const nodes = graph.nodes.map(n => ({
     data: {
       id: n,
-      label: n.length > 20 ? n.substring(0, 20) + '...' : n
       // Trim long labels to keep graph clean
+      label: n.length > 18 ? n.substring(0, 18) + '...' : n
     }
   }));
 
@@ -133,7 +132,6 @@ function displayGraph(graph) {
     }
   }));
 
-  // Store instance so reset/fit buttons work
   cyInstance = cytoscape({
     container: container,
     elements: [...nodes, ...edges],
@@ -147,11 +145,11 @@ function displayGraph(graph) {
           'color': '#fff',
           'text-valign': 'center',
           'text-halign': 'center',
-          'font-size': '10px',
+          'font-size': '11px',
           'font-weight': 'bold',
-          'padding': '12px',
+          'padding': '14px',
           'text-wrap': 'wrap',
-          'text-max-width': '80px',
+          'text-max-width': '90px',
           'width': 'label',
           'height': 'label',
           'shape': 'round-rectangle',
@@ -162,7 +160,7 @@ function displayGraph(graph) {
       {
         selector: 'node:hover',
         style: {
-          'background-color': '#2171c7',  // Darker on hover
+          'background-color': '#2171c7',
           'cursor': 'pointer'
         }
       },
@@ -175,7 +173,7 @@ function displayGraph(graph) {
           'line-color': '#94a3b8',
           'target-arrow-color': '#94a3b8',
           'font-size': '9px',
-          'color': '#555',
+          'color': '#444',
           'text-background-color': '#fff',
           'text-background-opacity': 1,
           'text-background-padding': '3px',
@@ -188,37 +186,47 @@ function displayGraph(graph) {
       }
     ],
 
+    // breadthfirst layout - best for many nodes, no overlapping
     layout: {
-      name: 'cose',          // Force-directed layout - prevents overlapping
+      name: 'breadthfirst',
+      directed: true,
+      padding: 50,
+      spacingFactor: 1.8,  // More space between nodes
       animate: true,
       animationDuration: 800,
-      padding: 40,
-      nodeRepulsion: 12000,  // Higher = more space between nodes
-      idealEdgeLength: 150,  // Longer edges = less crowding
-      edgeElasticity: 100,
-      nestingFactor: 5,
-      gravity: 80,
-      numIter: 1000,         // More iterations = better layout
-      initialTemp: 200,
-      coolingFactor: 0.95,
-      minTemp: 1.0,
-      fit: true              // Auto fit graph to container
+      fit: true
     }
   });
 }
 
 
-// Reset graph to original position
+// Reset graph zoom and position
 function resetGraph() {
   if (cyInstance) {
     cyInstance.reset();
   }
 }
 
-// Fit graph to fill the container
+// Fit entire graph inside container
 function fitGraph() {
   if (cyInstance) {
-    cyInstance.fit(40);
+    cyInstance.fit(50);
+  }
+}
+
+// Zoom in
+function zoomIn() {
+  if (cyInstance) {
+    cyInstance.zoom(cyInstance.zoom() * 1.3);
+    cyInstance.center();
+  }
+}
+
+// Zoom out
+function zoomOut() {
+  if (cyInstance) {
+    cyInstance.zoom(cyInstance.zoom() * 0.7);
+    cyInstance.center();
   }
 }
 
@@ -226,6 +234,16 @@ function fitGraph() {
 function displayGaps(gaps) {
   const container = document.getElementById('gaps-container');
   container.innerHTML = '';
+
+  // Auto adjust height based on number of nodes
+  const nodeCount = graph.nodes.length;
+  if (nodeCount <= 5) {
+    container.style.height = '300px';
+  } else if (nodeCount <= 8) {
+    container.style.height = '400px';
+  } else {
+    container.style.height = '500px';
+  }
 
   if (!gaps || gaps.length === 0) {
     container.innerHTML = '<p>No research gaps found</p>';

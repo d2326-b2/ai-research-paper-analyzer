@@ -15,12 +15,17 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 def call_llm(prompt: str) -> str:
     """Sends a prompt to Gemini and returns the response text."""
-    response = model.generate_content(prompt)
-    return response.text
+    try:
+        response = model.generate_content(prompt)
+        return response.text
+    except Exception as e:
+        print(f"Gemini API Error: {str(e)}")
+        raise
 
 
 def safe_parse_json(raw: str):
-    """Cleans and parses Gemini's JSON response."""
+    """Cleans and parses Gemini's JSON response.
+    Removes markdown code blocks before parsing."""
     cleaned = raw.strip()
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1]
@@ -45,11 +50,12 @@ Write as a single paragraph. No bullet points."""
 
 
 def extract_concepts(text: str) -> list:
-    """Extracts 10-15 key concepts from the paper.
-    These become the nodes in the knowledge graph."""
+    """Extracts 8-10 most important key concepts from the paper.
+    Kept minimal to avoid knowledge graph overcrowding."""
     prompt = f"""You are a research analyst. Read this research paper and extract
-10-15 key concepts such as models, methods, datasets, techniques,
-variables, diseases, chemicals, or algorithms.
+ONLY the 8-10 MOST important key concepts.
+These can be models, methods, datasets, techniques, variables, diseases, chemicals, or algorithms.
+Keep it minimal and focused on the most important ones only.
 
 Research Paper:
 {smart_chunk(text)}
@@ -65,11 +71,12 @@ Example: ["concept1", "concept2", "concept3"]"""
 
 def extract_relations(text: str, concepts: list) -> list:
     """Finds relationships between concepts as subject-relation-object triples.
-    These become the edges in the knowledge graph."""
+    Limited to 10 most important relations to keep graph clean."""
     prompt = f"""You are a research analyst. Given these concepts: {concepts}
 
 Find how these concepts relate to each other in the paper.
-Create 10-15 relationship triples.
+Create ONLY the 10 most important relationship triples.
+Use short relation labels (2-3 words maximum).
 
 Research Paper:
 {smart_chunk(text)}
@@ -164,13 +171,3 @@ Format:
         return safe_parse_json(raw)
     except:
         return []
-
-def call_llm(prompt: str) -> str:
-    """Sends a prompt to Gemini and returns the response text."""
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except Exception as e:
-        # Print exact error so we can see what is wrong
-        print(f"Gemini API Error: {str(e)}")
-        raise

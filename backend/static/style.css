@@ -132,7 +132,7 @@ main {
 /* Key Concepts */
 #concepts-container {
   display: flex;
-  flex-wrap: wrap;  /* Wraps to next line when full */
+  flex-wrap: wrap;
   gap: 10px;
   margin-top: 10px;
 }
@@ -141,26 +141,25 @@ main {
   background: #e8f0fe;
   color: #1a73e8;
   border: 1px solid #c5d8fd;
-  border-radius: 20px;     /* Pill shape */
+  border-radius: 20px;
   padding: 6px 16px;
   font-size: 0.88rem;
   font-weight: 500;
   transition: background 0.2s;
 }
 
-.concept-tag:hover {
-  background: #c5d8fd;  /* Darker on hover */
-}
+.concept-tag:hover { background: #c5d8fd; }
 
-/* Knowledge Graph */
+/* Knowledge Graph Controls */
 #graph-controls {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   display: flex;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 #graph-controls button {
-  padding: 6px 16px;
+  padding: 8px 18px;
   background: #f0f4f8;
   border: 1px solid #d0d8e4;
   border-radius: 6px;
@@ -171,9 +170,10 @@ main {
 
 #graph-controls button:hover { background: #e0e8f0; }
 
+/* Knowledge Graph Container */
 #cy {
   width: 100%;
-  height: 550px;       /* Taller for better graph display */
+  height: 450px;          /* Taller for better display */
   border-radius: 12px;
   border: 1px solid #e0e8f0;
   background: #fafbff;
@@ -245,6 +245,7 @@ main {
   padding: 14px 20px;
   font-weight: 600;
   font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 .exp-body {
@@ -265,8 +266,10 @@ main {
 
 .exp-field p { font-size: 0.9rem; line-height: 1.6; color: #444; }
 
+/* Responsive */
 @media (max-width: 600px) {
   .exp-body { grid-template-columns: 1fr; }
   header h1 { font-size: 1.6rem; }
   #concepts-container { gap: 8px; }
+  #cy { height: 400px; }
 }
