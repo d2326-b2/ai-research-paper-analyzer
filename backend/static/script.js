@@ -48,19 +48,21 @@ async function analyzePaper() {
     });
 
     const data = await response.json();
-    console.log("Response:", data);
+    console.log("Full response:", data);
 
     if (!response.ok) {
       throw new Error(data.error || "Analysis failed");
     }
 
-    displaySummary(data.summary);
-    displayConcepts(data.concepts);
-    displayGraph(data.graph);
-    displayGaps(data.gaps);
-    displayHypotheses(data.hypotheses);
-    displayExperiments(data.experiments);
+    // Display all sections
+    if (data.summary)     displaySummary(data.summary);
+    if (data.concepts)    displayConcepts(data.concepts);
+    if (data.graph)       displayGraph(data.graph);
+    if (data.gaps)        displayGaps(data.gaps);
+    if (data.hypotheses)  displayHypotheses(data.hypotheses);
+    if (data.experiments) displayExperiments(data.experiments);
 
+    // Show results section
     document.getElementById('results').style.display = 'block';
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
@@ -106,20 +108,30 @@ function displayGraph(graph) {
     return;
   }
 
+  // Auto adjust height based on number of nodes
+  const nodeCount = graph.nodes.length;
+  if (nodeCount <= 5) {
+    container.style.height = '350px';
+  } else if (nodeCount <= 8) {
+    container.style.height = '450px';
+  } else {
+    container.style.height = '550px';
+  }
+
   // Only keep valid edges where both nodes exist
   const nodeIds = new Set(graph.nodes);
-  const validEdges = graph.edges.filter(e =>
+  const validEdges = (graph.edges || []).filter(e =>
     e.subject && e.object &&
     nodeIds.has(e.subject) &&
     nodeIds.has(e.object) &&
     e.subject !== e.object
   );
 
+  // Show full node text - no trimming
   const nodes = graph.nodes.map(n => ({
     data: {
       id: n,
-      // Trim long labels to keep graph clean
-      label: n.length > 18 ? n.substring(0, 18) + '...' : n
+      label: n
     }
   }));
 
@@ -147,9 +159,9 @@ function displayGraph(graph) {
           'text-halign': 'center',
           'font-size': '11px',
           'font-weight': 'bold',
-          'padding': '14px',
+          'padding': '16px',
           'text-wrap': 'wrap',
-          'text-max-width': '90px',
+          'text-max-width': '120px',
           'width': 'label',
           'height': 'label',
           'shape': 'round-rectangle',
@@ -172,49 +184,56 @@ function displayGraph(graph) {
           'target-arrow-shape': 'triangle',
           'line-color': '#94a3b8',
           'target-arrow-color': '#94a3b8',
-          'font-size': '9px',
-          'color': '#444',
+          'font-size': '10px',
+          'font-weight': 'bold',
+          'color': '#333',
           'text-background-color': '#fff',
           'text-background-opacity': 1,
-          'text-background-padding': '3px',
+          'text-background-padding': '4px',
           'text-border-width': 1,
-          'text-border-color': '#e2e8f0',
+          'text-border-color': '#4A90E2',
           'text-border-opacity': 1,
+          'text-rotation': 'autorotate',
           'width': 2,
-          'opacity': 0.8
+          'opacity': 0.9
         }
       }
     ],
 
-    // breadthfirst layout - best for many nodes, no overlapping
     layout: {
       name: 'breadthfirst',
       directed: true,
-      padding: 50,
-      spacingFactor: 1.8,  // More space between nodes
+      padding: 40,
+      spacingFactor: 2.0,
       animate: true,
       animationDuration: 800,
       fit: true
     }
   });
+
+  // After layout finishes automatically fit all nodes perfectly
+  cyInstance.on('layoutstop', function() {
+    cyInstance.fit(40);                        // Fit all with 40px padding
+    cyInstance.center();                       // Center graph
+    cyInstance.zoom(cyInstance.zoom() * 0.9); // Slight zoom out so nothing cut
+  });
 }
 
 
-// Reset graph zoom and position
+// Graph control buttons
 function resetGraph() {
   if (cyInstance) {
     cyInstance.reset();
   }
 }
 
-// Fit entire graph inside container
 function fitGraph() {
   if (cyInstance) {
-    cyInstance.fit(50);
+    cyInstance.fit(40);
+    cyInstance.center();
   }
 }
 
-// Zoom in
 function zoomIn() {
   if (cyInstance) {
     cyInstance.zoom(cyInstance.zoom() * 1.3);
@@ -222,7 +241,6 @@ function zoomIn() {
   }
 }
 
-// Zoom out
 function zoomOut() {
   if (cyInstance) {
     cyInstance.zoom(cyInstance.zoom() * 0.7);
@@ -234,16 +252,6 @@ function zoomOut() {
 function displayGaps(gaps) {
   const container = document.getElementById('gaps-container');
   container.innerHTML = '';
-
-  // Auto adjust height based on number of nodes
-  const nodeCount = graph.nodes.length;
-  if (nodeCount <= 5) {
-    container.style.height = '300px';
-  } else if (nodeCount <= 8) {
-    container.style.height = '400px';
-  } else {
-    container.style.height = '500px';
-  }
 
   if (!gaps || gaps.length === 0) {
     container.innerHTML = '<p>No research gaps found</p>';
