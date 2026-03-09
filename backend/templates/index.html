@@ -5,57 +5,112 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Hypothesis Generator</title>
   <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
   <header>
-    <h1>🔬 AI Hypothesis Generator</h1>
-    <p>Upload any research paper PDF and get structured insights instantly</p>
+    <div class="header-inner">
+      <div class="header-badge">AI Powered</div>
+      <h1>Hypothesis Generator</h1>
+      <p>Upload any research paper and instantly get structured insights, knowledge graphs, and ranked hypotheses</p>
+    </div>
   </header>
 
   <main>
 
     <div class="upload-card">
-      <div class="upload-area">
-        <span class="upload-icon">📄</span>
-        <p>Click to browse or drag and drop your PDF</p>
+      <div class="upload-area" id="upload-area">
+        <div class="upload-icon-wrap">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="12" y1="18" x2="12" y2="12"/>
+            <line x1="9" y1="15" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <p class="upload-text">Drop your research paper here</p>
+        <p class="upload-sub">Supports any PDF — medical, science, engineering, economics</p>
         <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(this)">
         <div id="file-name" class="file-name"></div>
       </div>
       <button id="analyze-btn" onclick="analyzePaper()" disabled>
-        Analyze Paper
+        <span class="btn-icon">⚡</span> Analyze Paper
       </button>
     </div>
 
     <div id="loader" class="loader" style="display:none">
-      <div class="spinner"></div>
-      <p id="loader-text">Starting analysis...</p>
+      <div class="loader-inner">
+        <div class="loader-ring">
+          <div></div><div></div><div></div><div></div>
+        </div>
+        <p id="loader-text">Starting analysis...</p>
+        <div class="loader-steps">
+          <span class="step">📄 Extract</span>
+          <span class="step-arrow">→</span>
+          <span class="step">🔑 Concepts</span>
+          <span class="step-arrow">→</span>
+          <span class="step">🕸️ Graph</span>
+          <span class="step-arrow">→</span>
+          <span class="step">🔍 Gaps</span>
+          <span class="step-arrow">→</span>
+          <span class="step">💡 Hypothesis</span>
+        </div>
+      </div>
     </div>
 
     <div id="error-box" class="error-box" style="display:none"></div>
 
     <div id="results" style="display:none">
 
-      <!-- SUMMARY -->
-      <section class="result-section">
-        <h2>📄 Paper Summary</h2>
-        <div class="content-box">
-          <p id="summary-text"></p>
+      <!-- PAPER TITLE -->
+      <div class="paper-title-card">
+        <div class="title-meta">
+          <span class="title-badge">Research Paper</span>
+          <span id="filename-tag" class="filename-tag"></span>
         </div>
+        <h2 id="paper-title"></h2>
+      </div>
+
+      <!-- 1. SUMMARY -->
+      <section class="result-section">
+        <div class="section-header">
+          <div class="section-icon">📄</div>
+          <div>
+            <h2>Paper Summary</h2>
+            <p class="section-desc">AI-generated overview of the research</p>
+          </div>
+        </div>
+        <div class="content-box"><p id="summary-text"></p></div>
       </section>
 
-      <!-- KEY CONCEPTS -->
+      <!-- 2. KEY CONCEPTS -->
       <section class="result-section">
-        <h2>🔑 Key Concepts</h2>
-        <p class="hint">Important topics, methods and techniques extracted from the paper</p>
+        <div class="section-header">
+          <div class="section-icon">🔑</div>
+          <div>
+            <h2>Key Concepts</h2>
+            <p class="section-desc">Core topics and techniques extracted from the paper</p>
+          </div>
+        </div>
         <div id="concepts-container"></div>
       </section>
 
-      <!-- KNOWLEDGE GRAPH -->
+      <!-- 3. KNOWLEDGE GRAPH -->
       <section class="result-section">
-        <h2>🕸️ Knowledge Graph</h2>
-        <p class="hint">Nodes = Key Concepts | Edges = Relationships between them</p>
+        <div class="section-header">
+          <div class="section-icon">🕸️</div>
+          <div>
+            <h2>Knowledge Graph</h2>
+            <p class="section-desc">Visual map of concepts and their relationships</p>
+          </div>
+        </div>
+        <div class="graph-legend">
+          <span class="legend-item"><span class="legend-node"></span> Key Concept</span>
+          <span class="legend-item"><span class="legend-edge">→</span> Relationship</span>
+        </div>
         <div id="graph-controls">
           <button onclick="resetGraph()">↺ Reset</button>
           <button onclick="fitGraph()">⊡ Fit All</button>
@@ -65,29 +120,70 @@
         <div id="cy"></div>
       </section>
 
-      <!-- RESEARCH GAPS -->
+      <!-- 4. RESEARCH GAPS -->
       <section class="result-section">
-        <h2>🔍 Research Gaps</h2>
+        <div class="section-header">
+          <div class="section-icon">🔍</div>
+          <div>
+            <h2>Research Gaps</h2>
+            <p class="section-desc">Limitations and unexplored areas identified in the paper</p>
+          </div>
+        </div>
         <div id="gaps-container"></div>
       </section>
 
-      <!-- HYPOTHESES -->
+      <!-- 5. HYPOTHESES -->
       <section class="result-section">
-        <h2>💡 Generated Hypotheses</h2>
+        <div class="section-header">
+          <div class="section-icon">💡</div>
+          <div>
+            <h2>Generated Hypotheses</h2>
+            <p class="section-desc">Three ranked research hypotheses based on identified gaps</p>
+          </div>
+        </div>
+        <div class="hyp-legend">
+          <span class="hyp-badge basic-badge">🟢 Basic — Low risk, easy to test</span>
+          <span class="hyp-badge inter-badge">🟡 Intermediate — Moderate effort</span>
+          <span class="hyp-badge adv-badge">🔴 Advanced — High risk, innovative</span>
+        </div>
         <div id="hypotheses-container"></div>
       </section>
 
-      <!-- EXPERIMENTS -->
+      <!-- 6. EXPERIMENTS -->
       <section class="result-section">
-        <h2>🧪 Experiment Designs</h2>
+        <div class="section-header">
+          <div class="section-icon">🧪</div>
+          <div>
+            <h2>Experiment Designs</h2>
+            <p class="section-desc">Structured plans to test each hypothesis</p>
+          </div>
+        </div>
         <div id="experiments-container"></div>
       </section>
 
-    </div>
+      <!-- DOWNLOAD SECTION -->
+      <div class="download-section">
+        <div class="download-card">
+          <div class="download-info">
+            <div class="download-icon">📥</div>
+            <div>
+              <h3>Download Full Report</h3>
+              <p>Get the complete analysis as a structured PDF report</p>
+            </div>
+          </div>
+          <button id="download-btn" onclick="downloadPDF()">
+            ⬇ Download PDF Report
+          </button>
+        </div>
+      </div>
 
+    </div>
   </main>
 
-  <script src="/static/script.js"></script>
+  <footer>
+    <p>AI Hypothesis Generator — Powered by Gemini AI</p>
+  </footer>
 
+  <script src="/static/script.js"></script>
 </body>
 </html>

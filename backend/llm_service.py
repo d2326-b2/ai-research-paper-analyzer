@@ -10,7 +10,7 @@ from pdf_extractor import smart_chunk
 # Load API key from .env file and configure Gemini
 load_dotenv()
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-model = genai.GenerativeModel("gemini-2.5-flash-lite")
+model = genai.GenerativeModel("gemini-2.5-flash")
 
 
 def call_llm(prompt: str) -> str:
@@ -68,25 +68,26 @@ Example: ["concept1", "concept2", "concept3"]"""
     except:
         return ["Could not extract concepts"]
 
-
 def extract_relations(text: str, concepts: list) -> list:
-    """Finds relationships between concepts as subject-relation-object triples.
-    Limited to 10 most important relations to keep graph clean."""
+    """Finds relationships between ALL concepts."""
     prompt = f"""You are a research analyst. Given these concepts: {concepts}
 
-Find how these concepts relate to each other in the paper.
-Create ONLY the 10 most important relationship triples.
-Use short relation labels (2-3 words maximum).
+    IMPORTANT RULES:
+    - Every concept must appear in at least ONE relation
+    - No concept should be left unconnected
+    - Use short action verbs: improves, uses, trains, evaluates,
+      combines, extends, achieves, requires, produces, compares
+    - Create exactly {len(concepts)} relationship triples
 
-Research Paper:
-{smart_chunk(text)}
+    Research Paper:
+    {smart_chunk(text)}
 
-Return ONLY a valid JSON array. No explanation. No markdown. Just JSON.
-Example:
-[
-  {{"subject": "BERT", "relation": "improves", "object": "accuracy"}},
-  {{"subject": "dataset", "relation": "used for", "object": "training"}}
-]"""
+    Return ONLY a valid JSON array. No explanation. No markdown. Just JSON.
+    Example:
+    [
+    {{"subject": "BERT", "relation": "improves", "object": "accuracy"}},
+    {{"subject": "dataset", "relation": "trains", "object": "BERT"}}
+    ]"""
     raw = call_llm(prompt)
     try:
         return safe_parse_json(raw)
@@ -154,15 +155,22 @@ Design a structured experiment plan for each hypothesis.
 
 Hypotheses: {hypotheses}
 
+IMPORTANT FORMATTING RULES:
+- methodology: Write as numbered steps like "1. Do this 2. Do that 3. Then this"
+- required_data: Write as bullet points separated by " | " like "Dataset A | Tool B | Resource C"
+- evaluation_metrics: Write as bullet points separated by " | " like "Metric 1 | Metric 2 | Metric 3"
+- objective: One clear sentence
+- expected_outcome: One clear sentence
+
 Return ONLY a valid JSON array. No explanation. No markdown. Just JSON.
 Format:
 [
   {{
     "hypothesis": "hypothesis being tested",
     "objective": "what this experiment aims to prove",
-    "methodology": "step by step method",
-    "required_data": "what data or resources are needed",
-    "evaluation_metrics": "how success will be measured",
+    "methodology": "1. First step 2. Second step 3. Third step 4. Fourth step",
+    "required_data": "Item 1 | Item 2 | Item 3",
+    "evaluation_metrics": "Metric 1 | Metric 2 | Metric 3",
     "expected_outcome": "what result validates the hypothesis"
   }}
 ]"""

@@ -1,9 +1,11 @@
 // scripts.js
 let selectedFile = null;
 let cyInstance = null;
+let reportData = {};
 
 const loaderMessages = [
   "Extracting text from PDF...",
+  "Extracting paper title...",
   "Generating paper summary...",
   "Extracting key concepts...",
   "Building knowledge graph...",
@@ -19,8 +21,9 @@ let loaderInterval = null;
 function handleFileSelect(input) {
   selectedFile = input.files[0];
   if (selectedFile) {
-    document.getElementById('file-name').textContent = `✅ ${selectedFile.name}`;
+    document.getElementById('file-name').textContent = '✅ ' + selectedFile.name;
     document.getElementById('analyze-btn').disabled = false;
+    document.getElementById('upload-area').style.borderColor = '#2563eb';
   }
 }
 
@@ -54,7 +57,9 @@ async function analyzePaper() {
       throw new Error(data.error || "Analysis failed");
     }
 
-    // Display all sections
+    reportData = data;
+
+    if (data.title)       displayTitle(data.title, data.filename);
     if (data.summary)     displaySummary(data.summary);
     if (data.concepts)    displayConcepts(data.concepts);
     if (data.graph)       displayGraph(data.graph);
@@ -62,7 +67,6 @@ async function analyzePaper() {
     if (data.hypotheses)  displayHypotheses(data.hypotheses);
     if (data.experiments) displayExperiments(data.experiments);
 
-    // Show results section
     document.getElementById('results').style.display = 'block';
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
@@ -76,6 +80,14 @@ async function analyzePaper() {
 }
 
 
+function displayTitle(title, filename) {
+  document.getElementById('paper-title').textContent = title || "Research Paper";
+  if (filename) {
+    document.getElementById('filename-tag').textContent = '📎 ' + filename;
+  }
+}
+
+
 function displaySummary(summary) {
   document.getElementById('summary-text').textContent = summary || "No summary available";
 }
@@ -84,12 +96,10 @@ function displaySummary(summary) {
 function displayConcepts(concepts) {
   const container = document.getElementById('concepts-container');
   container.innerHTML = '';
-
   if (!concepts || concepts.length === 0) {
-    container.innerHTML = '<p>No concepts found</p>';
+    container.innerHTML = '<p style="color:#64748b">No concepts found</p>';
     return;
   }
-
   concepts.forEach(concept => {
     const tag = document.createElement('span');
     tag.className = 'concept-tag';
@@ -104,21 +114,15 @@ function displayGraph(graph) {
   container.innerHTML = '';
 
   if (!graph || !graph.nodes || graph.nodes.length === 0) {
-    container.innerHTML = "<p style='padding:20px;color:#888'>No graph data available</p>";
+    container.innerHTML = "<p style='padding:20px;color:#94a3b8;text-align:center'>No graph data available</p>";
     return;
   }
 
-  // Auto adjust height based on number of nodes
   const nodeCount = graph.nodes.length;
-  if (nodeCount <= 5) {
-    container.style.height = '350px';
-  } else if (nodeCount <= 8) {
-    container.style.height = '450px';
-  } else {
-    container.style.height = '550px';
-  }
+  if (nodeCount <= 5)      container.style.height = '350px';
+  else if (nodeCount <= 8) container.style.height = '450px';
+  else                     container.style.height = '550px';
 
-  // Only keep valid edges where both nodes exist
   const nodeIds = new Set(graph.nodes);
   const validEdges = (graph.edges || []).filter(e =>
     e.subject && e.object &&
@@ -127,38 +131,26 @@ function displayGraph(graph) {
     e.subject !== e.object
   );
 
-  // Show full node text - no trimming
-  const nodes = graph.nodes.map(n => ({
-    data: {
-      id: n,
-      label: n
-    }
-  }));
-
+  const nodes = graph.nodes.map(n => ({ data: { id: n, label: n } }));
   const edges = validEdges.map((e, i) => ({
-    data: {
-      id: `edge_${i}`,
-      source: e.subject,
-      target: e.object,
-      label: e.relation || ''
-    }
+    data: { id: 'edge_' + i, source: e.subject, target: e.object, label: e.relation || '' }
   }));
 
   cyInstance = cytoscape({
     container: container,
     elements: [...nodes, ...edges],
-
     style: [
       {
         selector: 'node',
         style: {
           'label': 'data(label)',
-          'background-color': '#4A90E2',
+          'background-color': '#2563eb',
           'color': '#fff',
           'text-valign': 'center',
           'text-halign': 'center',
           'font-size': '11px',
           'font-weight': 'bold',
+          'font-family': 'DM Sans, sans-serif',
           'padding': '16px',
           'text-wrap': 'wrap',
           'text-max-width': '120px',
@@ -166,15 +158,12 @@ function displayGraph(graph) {
           'height': 'label',
           'shape': 'round-rectangle',
           'border-width': 2,
-          'border-color': '#2171c7'
+          'border-color': '#1d4ed8'
         }
       },
       {
         selector: 'node:hover',
-        style: {
-          'background-color': '#2171c7',
-          'cursor': 'pointer'
-        }
+        style: { 'background-color': '#1d4ed8', 'cursor': 'pointer' }
       },
       {
         selector: 'edge',
@@ -185,13 +174,13 @@ function displayGraph(graph) {
           'line-color': '#94a3b8',
           'target-arrow-color': '#94a3b8',
           'font-size': '10px',
-          'font-weight': 'bold',
-          'color': '#333',
-          'text-background-color': '#fff',
+          'font-weight': '600',
+          'color': '#475569',
+          'text-background-color': '#ffffff',
           'text-background-opacity': 1,
           'text-background-padding': '4px',
           'text-border-width': 1,
-          'text-border-color': '#4A90E2',
+          'text-border-color': '#e2e8f0',
           'text-border-opacity': 1,
           'text-rotation': 'autorotate',
           'width': 2,
@@ -199,7 +188,6 @@ function displayGraph(graph) {
         }
       }
     ],
-
     layout: {
       name: 'breadthfirst',
       directed: true,
@@ -211,59 +199,28 @@ function displayGraph(graph) {
     }
   });
 
-  // After layout finishes automatically fit all nodes perfectly
   cyInstance.on('layoutstop', function() {
-    cyInstance.fit(40);                        // Fit all with 40px padding
-    cyInstance.center();                       // Center graph
-    cyInstance.zoom(cyInstance.zoom() * 0.9); // Slight zoom out so nothing cut
+    cyInstance.fit(40);
+    cyInstance.center();
+    cyInstance.zoom(cyInstance.zoom() * 0.9);
   });
 }
 
-
-// Graph control buttons
-function resetGraph() {
-  if (cyInstance) {
-    cyInstance.reset();
-  }
-}
-
-function fitGraph() {
-  if (cyInstance) {
-    cyInstance.fit(40);
-    cyInstance.center();
-  }
-}
-
-function zoomIn() {
-  if (cyInstance) {
-    cyInstance.zoom(cyInstance.zoom() * 1.3);
-    cyInstance.center();
-  }
-}
-
-function zoomOut() {
-  if (cyInstance) {
-    cyInstance.zoom(cyInstance.zoom() * 0.7);
-    cyInstance.center();
-  }
-}
+function resetGraph() { if (cyInstance) cyInstance.reset(); }
+function fitGraph()   { if (cyInstance) { cyInstance.fit(40); cyInstance.center(); } }
+function zoomIn()     { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() * 1.3); cyInstance.center(); } }
+function zoomOut()    { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() * 0.7); cyInstance.center(); } }
 
 
 function displayGaps(gaps) {
   const container = document.getElementById('gaps-container');
   container.innerHTML = '';
-
   if (!gaps || gaps.length === 0) {
-    container.innerHTML = '<p>No research gaps found</p>';
+    container.innerHTML = '<p style="color:#64748b">No research gaps found</p>';
     return;
   }
-
   gaps.forEach((gap, index) => {
-    container.innerHTML += `
-      <div class="gap-card">
-        <div class="gap-number">${index + 1}</div>
-        <p>${gap}</p>
-      </div>`;
+    container.innerHTML += '<div class="gap-card"><div class="gap-number">' + (index + 1) + '</div><p>' + gap + '</p></div>';
   });
 }
 
@@ -271,20 +228,13 @@ function displayGaps(gaps) {
 function displayHypotheses(hypotheses) {
   const container = document.getElementById('hypotheses-container');
   container.innerHTML = '';
-
   if (!hypotheses || hypotheses.length === 0) {
-    container.innerHTML = '<p>No hypotheses generated</p>';
+    container.innerHTML = '<p style="color:#64748b">No hypotheses generated</p>';
     return;
   }
-
-  hypotheses.forEach(h => {
+  hypotheses.forEach((h, index) => {
     const levelClass = h.level ? h.level.toLowerCase() : 'basic';
-    container.innerHTML += `
-      <div class="hyp-card ${levelClass}">
-        <div class="hyp-level">${h.level || 'Basic'} Hypothesis</div>
-        <h3>${h.hypothesis || ''}</h3>
-        <p><strong>Rationale:</strong> ${h.rationale || ''}</p>
-      </div>`;
+    container.innerHTML += '<div class="hyp-card ' + levelClass + '"><div class="hyp-header"><span class="hyp-level-badge">' + (h.level || 'Basic') + '</span><span class="hyp-number">Hypothesis ' + (index + 1) + ' of ' + hypotheses.length + '</span></div><p class="hyp-statement">' + (h.hypothesis || '') + '</p><div class="hyp-rationale"><strong>Rationale:</strong> ' + (h.rationale || '') + '</div></div>';
   });
 }
 
@@ -292,46 +242,556 @@ function displayHypotheses(hypotheses) {
 function displayExperiments(experiments) {
   const container = document.getElementById('experiments-container');
   container.innerHTML = '';
-
   if (!experiments || experiments.length === 0) {
-    container.innerHTML = '<p>No experiments generated</p>';
+    container.innerHTML = '<p style="color:#64748b">No experiments generated</p>';
     return;
   }
-
   experiments.forEach((exp, index) => {
     const hypothesis = exp.hypothesis || '';
-    container.innerHTML += `
-      <div class="exp-card">
-        <div class="exp-header">
-          Experiment ${index + 1}: ${hypothesis.substring(0, 80)}${hypothesis.length > 80 ? '...' : ''}
-        </div>
-        <div class="exp-body">
-          <div class="exp-field">
-            <label>Objective</label>
-            <p>${exp.objective || 'N/A'}</p>
-          </div>
-          <div class="exp-field">
-            <label>Methodology</label>
-            <p>${exp.methodology || 'N/A'}</p>
-          </div>
-          <div class="exp-field">
-            <label>Required Data</label>
-            <p>${exp.required_data || 'N/A'}</p>
-          </div>
-          <div class="exp-field">
-            <label>Evaluation Metrics</label>
-            <p>${exp.evaluation_metrics || 'N/A'}</p>
-          </div>
-          <div class="exp-field" style="grid-column: 1/-1">
-            <label>Expected Outcome</label>
-            <p>${exp.expected_outcome || 'N/A'}</p>
-          </div>
-        </div>
-      </div>`;
+    const methodologyHTML = formatMethodology(exp.methodology || 'N/A');
+    const requiredDataHTML = formatBullets(exp.required_data || 'N/A');
+    const metricsHTML = formatBullets(exp.evaluation_metrics || 'N/A');
+
+    container.innerHTML += '<div class="exp-card"><div class="exp-header"><div class="exp-header-top"><div class="exp-number">Experiment ' + (index + 1) + '</div></div><div class="exp-hypothesis-box"><span class="exp-hyp-label">Testing Hypothesis:</span><p class="exp-hyp-text">' + hypothesis + '</p></div></div><div class="exp-body"><div class="exp-field"><label>Objective</label><p>' + (exp.objective || 'N/A') + '</p></div><div class="exp-field full-width"><label>Methodology</label>' + methodologyHTML + '</div><div class="exp-field"><label>Required Data</label>' + requiredDataHTML + '</div><div class="exp-field"><label>Evaluation Metrics</label>' + metricsHTML + '</div><div class="exp-field full-width"><label>Expected Outcome</label><p>' + (exp.expected_outcome || 'N/A') + '</p></div></div></div>';
   });
 }
 
 
+function formatMethodology(text) {
+  if (!text || text === 'N/A') return '<p>N/A</p>';
+  const steps = text.split(/(?=\d+\.\s)/).filter(s => s.trim());
+  if (steps.length <= 1) return '<p style="text-align:justify">' + text + '</p>';
+  const items = steps.map(step => '<li>' + step.replace(/^\d+\.\s*/, '').trim() + '</li>').join('');
+  return '<ol class="exp-list">' + items + '</ol>';
+}
+
+
+function formatBullets(text) {
+  if (!text || text === 'N/A') return '<p>N/A</p>';
+  const items = text.split('|').map(s => s.trim()).filter(s => s);
+  if (items.length <= 1) return '<p style="text-align:justify">' + text + '</p>';
+  return '<ul class="exp-list">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
+}
+
+
+// ===================== PDF DOWNLOAD =====================
+async function downloadPDF() {
+  const btn = document.getElementById('download-btn');
+  btn.textContent = 'Generating PDF...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const pageW   = 210;
+    const pageH   = 297;
+    const margin  = 18;
+    const cW      = pageW - margin * 2;  // content width
+    let y         = margin;
+
+    // Colors (RGB arrays)
+    const DARK      = [15,  23,  42];
+    const DARK2     = [30,  41,  59];
+    const PRIMARY   = [37,  99,  235];
+    const WHITE     = [255, 255, 255];
+    const MUTED     = [100, 116, 139];
+    const BG        = [241, 245, 249];
+    const BORDER    = [226, 232, 240];
+    const SUCCESS   = [22,  163, 74];
+    const WARNING   = [217, 119, 6];
+    const DANGER    = [220, 38,  38];
+    const YELLOW_BG = [255, 251, 235];
+    const YELLOW_BD = [253, 230, 138];
+    const GREEN_BG  = [240, 253, 244];
+    const GREEN_BD  = [187, 247, 208];
+    const AMBER_BG  = [254, 252, 232];
+    const AMBER_BD  = [253, 230, 138];
+    const PINK_BG   = [253, 242, 248];
+    const PINK_BD   = [251, 207, 232];
+
+    // ---- HELPERS ----
+
+    function newPage() {
+      doc.addPage();
+      y = margin;
+      // Running header
+      doc.setFillColor(...DARK);
+      doc.rect(0, 0, pageW, 10, 'F');
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...MUTED);
+      doc.text('AI Hypothesis Generator', margin, 7);
+      const shortTitle = (reportData.title || 'Report').substring(0, 50);
+      doc.text(shortTitle, pageW - margin, 7, { align: 'right' });
+      y = 16;
+    }
+
+    function checkPage(needed) {
+      if (y + needed > pageH - 14) newPage();
+    }
+
+    // Justified paragraph text — splits and aligns both sides
+    function justifiedText(text, x, startY, maxW, lineH, color, size, bold) {
+      doc.setFontSize(size || 10);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(...(color || DARK));
+      const lines = doc.splitTextToSize(text, maxW);
+      lines.forEach((line, i) => {
+        const isLast = i === lines.length - 1;
+        if (isLast) {
+          // Last line — left aligned
+          doc.text(line, x, startY + i * (lineH || 5.5));
+        } else {
+          // All other lines — justify by spacing words
+          const words = line.split(' ');
+          if (words.length <= 1) {
+            doc.text(line, x, startY + i * (lineH || 5.5));
+          } else {
+            const lineW = doc.getTextWidth(line);
+            const spaceExtra = (maxW - lineW) / (words.length - 1);
+            let cx = x;
+            words.forEach((word, wi) => {
+              doc.text(word, cx, startY + i * (lineH || 5.5));
+              cx += doc.getTextWidth(word) + doc.getTextWidth(' ') + spaceExtra;
+            });
+          }
+        }
+      });
+      return lines.length;
+    }
+
+    function sectionTitle(text) {
+      checkPage(20);
+      // Blue left bar
+      doc.setFillColor(...PRIMARY);
+      doc.rect(margin, y, 3, 9, 'F');
+      doc.setFontSize(13);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text(text, margin + 8, y + 7);
+      y += 13;
+      doc.setDrawColor(...BORDER);
+      doc.setLineWidth(0.3);
+      doc.line(margin, y, pageW - margin, y);
+      y += 6;
+    }
+
+    function fieldLabel(text, color) {
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...(color || PRIMARY));
+      doc.text(text.toUpperCase(), margin + 5, y);
+      y += 5;
+    }
+
+
+    // ===================== COVER PAGE =====================
+    doc.setFillColor(...DARK);
+    doc.rect(0, 0, pageW, 85, 'F');
+
+    // Top accent line
+    doc.setFillColor(...PRIMARY);
+    doc.rect(0, 0, pageW, 2, 'F');
+
+    // AI POWERED badge
+    doc.setFillColor(30, 58, 138);
+    doc.roundedRect(margin, 14, 40, 8, 3, 3, 'F');
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(147, 197, 253);
+    doc.text('AI POWERED REPORT', margin + 4, 19.5);
+
+    // Paper title
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...WHITE);
+    const titleLines = doc.splitTextToSize(reportData.title || 'Research Paper Analysis', cW);
+    titleLines.slice(0, 3).forEach((line, i) => {
+      doc.text(line, margin, 34 + i * 10);
+    });
+
+    // Meta info
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...MUTED);
+    const dateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    doc.text('Generated: ' + dateStr, margin, 70);
+    doc.text('File: ' + (reportData.filename || ''), margin, 76);
+
+    // Bottom accent
+    doc.setFillColor(...PRIMARY);
+    doc.rect(0, 85, pageW, 2, 'F');
+
+    y = 98;
+
+    // Table of contents
+    doc.setFillColor(...BG);
+    doc.setDrawColor(...BORDER);
+    doc.roundedRect(margin, y, cW, 68, 4, 4, 'FD');
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...DARK);
+    doc.text('TABLE OF CONTENTS', margin + 6, y + 9);
+
+    doc.setDrawColor(...BORDER);
+    doc.line(margin + 6, y + 11, margin + cW - 6, y + 11);
+
+    const tocItems = [
+      '1.   Paper Summary',
+      '2.   Key Concepts',
+      '3.   Knowledge Graph',
+      '4.   Research Gaps',
+      '5.   Generated Hypotheses  (Basic / Intermediate / Advanced)',
+      '6.   Experiment Designs',
+    ];
+
+    tocItems.forEach((item, i) => {
+      doc.setFontSize(9.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...DARK);
+      doc.text(item, margin + 8, y + 20 + i * 8);
+      // Dot leaders
+      doc.setTextColor(...MUTED);
+      doc.setFontSize(8);
+    });
+
+    y += 76;
+
+    doc.setFontSize(8);
+    doc.setTextColor(...MUTED);
+    doc.text('Powered by Gemini AI  |  AI Hypothesis Generator', margin, y);
+
+
+    // ===================== PAGE 2 — CONTENT =====================
+    newPage();
+
+
+    // ---- 1. PAPER SUMMARY ----
+    sectionTitle('1. Paper Summary');
+
+    if (reportData.summary) {
+      const summaryLines = doc.splitTextToSize(reportData.summary, cW - 8);
+      const boxH = summaryLines.length * 5.5 + 12;
+      checkPage(boxH + 6);
+
+      doc.setFillColor(248, 250, 252);
+      doc.setDrawColor(...BORDER);
+      doc.roundedRect(margin, y, cW, boxH, 3, 3, 'FD');
+
+      const linesDrawn = justifiedText(reportData.summary, margin + 4, y + 7, cW - 8, 5.5, [51, 65, 85], 10, false);
+      y += boxH + 8;
+    }
+
+
+    // ---- 2. KEY CONCEPTS ----
+    sectionTitle('2. Key Concepts');
+
+    if (reportData.concepts && reportData.concepts.length > 0) {
+      checkPage(24);
+
+      let cx = margin;
+      let tagRowY = y;
+      const tagH = 8;
+      const tagPad = 5;
+
+      reportData.concepts.forEach(concept => {
+        doc.setFontSize(9);
+        const tw = doc.getTextWidth(concept) + tagPad * 2;
+
+        if (cx + tw > pageW - margin) {
+          cx = margin;
+          tagRowY += tagH + 4;
+          checkPage(tagH + 8);
+        }
+
+        // Tag background
+        doc.setFillColor(...PRIMARY);
+        doc.roundedRect(cx, tagRowY - 5, tw, tagH, 3, 3, 'F');
+
+        // Tag text
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...WHITE);
+        doc.text(concept, cx + tagPad, tagRowY + 0.5);
+
+        cx += tw + 5;
+      });
+
+      y = tagRowY + tagH + 6;
+    }
+
+
+    // ---- 3. KNOWLEDGE GRAPH ----
+    sectionTitle('3. Knowledge Graph');
+
+    // Capture the cytoscape graph as PNG image
+    if (cyInstance) {
+      try {
+        const graphPNG = cyInstance.png({ output: 'base64', bg: '#fafbff', full: true, scale: 2 });
+        if (graphPNG) {
+          // Calculate image size to fit page width
+          const imgW = cW;
+          const imgH = Math.min(imgW * 0.6, 100); // max 100mm height
+          checkPage(imgH + 10);
+
+          doc.setFillColor(250, 251, 255);
+          doc.setDrawColor(...BORDER);
+          doc.roundedRect(margin, y, cW, imgH + 6, 3, 3, 'FD');
+
+          doc.addImage('data:image/png;base64,' + graphPNG, 'PNG', margin + 2, y + 3, imgW - 4, imgH);
+          y += imgH + 12;
+        }
+      } catch (e) {
+        // Fallback if image capture fails
+        checkPage(20);
+        doc.setFillColor(219, 234, 254);
+        doc.setDrawColor(191, 219, 254);
+        doc.roundedRect(margin, y, cW, 16, 3, 3, 'FD');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(30, 64, 175);
+        doc.text('Knowledge graph available in the web application.', margin + 4, y + 10);
+        y += 22;
+      }
+    }
+
+    // Concept relationships list below graph
+    if (reportData.graph && reportData.graph.edges && reportData.graph.edges.length > 0) {
+      checkPage(14);
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...DARK);
+      doc.text('Concept Relationships:', margin, y);
+      y += 6;
+
+      reportData.graph.edges.slice(0, 12).forEach(edge => {
+        checkPage(7);
+        const rel = (edge.subject || '') + '  -->  ' + (edge.relation || '') + '  -->  ' + (edge.object || '');
+        doc.setFontSize(8.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+
+        // Bullet
+        doc.setFillColor(...PRIMARY);
+        doc.circle(margin + 1.5, y - 1.5, 1, 'F');
+
+        doc.text(rel, margin + 5, y);
+        y += 5.5;
+      });
+      y += 4;
+    }
+
+
+    // ---- 4. RESEARCH GAPS ----
+    sectionTitle('4. Research Gaps');
+
+    if (reportData.gaps && reportData.gaps.length > 0) {
+      reportData.gaps.forEach((gap, i) => {
+        const gapLines = doc.splitTextToSize(gap, cW - 24);
+        const boxH = gapLines.length * 5.5 + 14;
+        checkPage(boxH + 5);
+
+        // Card
+        doc.setFillColor(...YELLOW_BG);
+        doc.setDrawColor(...YELLOW_BD);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, y, cW, boxH, 3, 3, 'FD');
+
+        // Left orange bar
+        doc.setFillColor(...WARNING);
+        doc.rect(margin, y, 3.5, boxH, 'F');
+
+        // Number circle
+        doc.setFillColor(...WARNING);
+        doc.circle(margin + 13, y + boxH / 2, 5, 'F');
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...WHITE);
+        doc.text('' + (i + 1), margin + 13, y + boxH / 2 + 1.5, { align: 'center' });
+
+        // Justified gap text
+        justifiedText(gap, margin + 23, y + 7, cW - 26, 5.5, [120, 53, 15], 9.5, false);
+
+        y += boxH + 5;
+      });
+      y += 4;
+    }
+
+
+    // ---- 5. HYPOTHESES ----
+    sectionTitle('5. Generated Hypotheses');
+
+    const hypStyle = {
+      basic:        { bg: GREEN_BG,  bd: GREEN_BD,  bar: SUCCESS, badgeBg: [220,252,231], badgeTxt: [22,101,52]  },
+      intermediate: { bg: AMBER_BG,  bd: AMBER_BD,  bar: WARNING, badgeBg: [254,249,195], badgeTxt: [133,77,14]  },
+      advanced:     { bg: PINK_BG,   bd: PINK_BD,   bar: DANGER,  badgeBg: [252,231,243], badgeTxt: [157,23,77]  },
+    };
+
+    if (reportData.hypotheses && reportData.hypotheses.length > 0) {
+      reportData.hypotheses.forEach((h, i) => {
+        const level  = (h.level || 'basic').toLowerCase();
+        const style  = hypStyle[level] || hypStyle.basic;
+        const hypTxt = h.hypothesis || '';
+        const ratTxt = 'Rationale: ' + (h.rationale || '');
+
+        const hypLines = doc.splitTextToSize(hypTxt, cW - 16);
+        const ratLines = doc.splitTextToSize(ratTxt, cW - 16);
+        const boxH = hypLines.length * 5.5 + ratLines.length * 5.2 + 28;
+
+        checkPage(boxH + 6);
+
+        // Card
+        doc.setFillColor(...style.bg);
+        doc.setDrawColor(...style.bd);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(margin, y, cW, boxH, 3, 3, 'FD');
+
+        // Left bar
+        doc.setFillColor(...style.bar);
+        doc.rect(margin, y, 4, boxH, 'F');
+
+        // Level badge
+        doc.setFontSize(8);
+        const levelTxt = (h.level || 'Basic').toUpperCase();
+        const bw = doc.getTextWidth(levelTxt) + 10;
+        doc.setFillColor(...style.badgeBg);
+        doc.roundedRect(margin + 8, y + 5, bw, 7, 3, 3, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...style.badgeTxt);
+        doc.text(levelTxt, margin + 13, y + 10);
+
+        // Hypothesis count
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...MUTED);
+        doc.text('Hypothesis ' + (i + 1) + ' of ' + reportData.hypotheses.length, margin + bw + 16, y + 10);
+
+        // Hypothesis statement — justified
+        const hypStartY = y + 18;
+        justifiedText(hypTxt, margin + 8, hypStartY, cW - 16, 5.5, DARK, 10, true);
+
+        // Rationale — justified
+        const ratStartY = hypStartY + hypLines.length * 5.5 + 4;
+        justifiedText(ratTxt, margin + 8, ratStartY, cW - 16, 5.2, MUTED, 9, false);
+
+        y += boxH + 6;
+      });
+    }
+
+
+    // ---- 6. EXPERIMENT DESIGNS ----
+    sectionTitle('6. Experiment Designs');
+
+    if (reportData.experiments && reportData.experiments.length > 0) {
+      reportData.experiments.forEach((exp, i) => {
+        const hyp  = exp.hypothesis || '';
+        const obj  = exp.objective || 'N/A';
+        const meth = exp.methodology || 'N/A';
+        const data = exp.required_data || 'N/A';
+        const metr = exp.evaluation_metrics || 'N/A';
+        const out  = exp.expected_outcome || 'N/A';
+
+        // Estimate total height
+        const hypL  = doc.splitTextToSize(hyp,  cW - 14).length;
+        const objL  = doc.splitTextToSize(obj,  cW - 14).length;
+        const methL = doc.splitTextToSize(meth, cW - 14).length;
+        const dataL = doc.splitTextToSize(data, cW - 14).length;
+        const metrL = doc.splitTextToSize(metr, cW - 14).length;
+        const outL  = doc.splitTextToSize(out,  cW - 14).length;
+        const estH  = (hypL + objL + methL + dataL + metrL + outL) * 5.5 + 80;
+
+        checkPage(Math.min(estH, 60));
+
+        // Dark header
+        const headerH = hypL * 5.5 + 22;
+        doc.setFillColor(...DARK2);
+        doc.roundedRect(margin, y, cW, headerH, 3, 3, 'F');
+
+        // Experiment badge
+        const expLabel = 'EXPERIMENT ' + (i + 1);
+        const expBW = doc.getTextWidth(expLabel) + 10;
+        doc.setFillColor(...PRIMARY);
+        doc.roundedRect(margin + 6, y + 5, expBW, 7, 3, 3, 'F');
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...WHITE);
+        doc.text(expLabel, margin + 11, y + 10);
+
+        // Testing hypothesis label
+        doc.setFontSize(7.5);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(96, 165, 250);
+        doc.text('TESTING HYPOTHESIS:', margin + 6, y + 18);
+
+        // Hypothesis text justified
+        justifiedText(hyp, margin + 6, y + 24, cW - 12, 5.5, [226, 232, 240], 9, false);
+
+        y += headerH;
+
+        // Fields
+        const fields = [
+          { label: 'OBJECTIVE',          text: obj,  bg: [248,250,252], labelColor: PRIMARY   },
+          { label: 'METHODOLOGY',        text: meth, bg: [248,250,252], labelColor: PRIMARY   },
+          { label: 'REQUIRED DATA',      text: data, bg: [248,250,252], labelColor: PRIMARY   },
+          { label: 'EVALUATION METRICS', text: metr, bg: [248,250,252], labelColor: PRIMARY   },
+          { label: 'EXPECTED OUTCOME',   text: out,  bg: GREEN_BG,      labelColor: SUCCESS   },
+        ];
+
+        fields.forEach(field => {
+          const fLines = doc.splitTextToSize(field.text, cW - 14);
+          const fH = fLines.length * 5.5 + 14;
+          checkPage(fH + 4);
+
+          doc.setFillColor(...field.bg);
+          doc.setDrawColor(...BORDER);
+          doc.setLineWidth(0.3);
+          doc.rect(margin, y, cW, fH, 'FD');
+
+          doc.setFontSize(7.5);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...field.labelColor);
+          doc.text(field.label, margin + 5, y + 6);
+
+          // Justified field text
+          justifiedText(field.text, margin + 5, y + 12, cW - 10, 5.5, [71, 85, 105], 9.5, false);
+          y += fH;
+        });
+
+        y += 10;
+      });
+    }
+
+
+    // ---- PAGE NUMBERS ----
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...MUTED);
+      doc.text('Page ' + p + ' of ' + totalPages, pageW / 2, pageH - 6, { align: 'center' });
+      if (p > 1) {
+        doc.text('AI Hypothesis Generator', margin, pageH - 6);
+        doc.text(dateStr || '', pageW - margin, pageH - 6, { align: 'right' });
+      }
+    }
+
+    // Save
+    const safeName = (reportData.title || 'report').substring(0, 40).replace(/[^a-z0-9]/gi, '_');
+    doc.save('Hypothesis_Report_' + safeName + '.pdf');
+
+  } catch (err) {
+    console.error('PDF error:', err);
+    alert('PDF generation failed: ' + err.message);
+  } finally {
+    btn.innerHTML = 'Download PDF Report';
+    btn.disabled = false;
+  }
+}
+
+
+// ===================== UI HELPERS =====================
 function showLoader() {
   document.getElementById('loader').style.display = 'block';
   document.getElementById('loader-text').textContent = loaderMessages[0];
@@ -347,7 +807,7 @@ function hideResults() {
 
 function showError(message) {
   const box = document.getElementById('error-box');
-  box.textContent = `❌ Error: ${message}`;
+  box.textContent = 'Error: ' + message;
   box.style.display = 'block';
 }
 
