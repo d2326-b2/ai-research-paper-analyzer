@@ -1151,3 +1151,35 @@ ul.exp-list li::before {
   .download-bar { flex-direction: column; text-align: center; }
   #cy { height: 350px; }
 }
+
+.nav-user {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: 8px;
+  padding-left: 12px;
+  border-left: 1px solid rgba(255,255,255,0.1);
+}
+
+.nav-username {
+  color: #94a3b8;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.nav-logout {
+  color: #ef4444;
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.nav-logout:hover {
+  background: rgba(239,68,68,0.1);
+  border-color: #ef4444;
+}
+

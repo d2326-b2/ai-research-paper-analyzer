@@ -6,7 +6,7 @@ import os
 from database import db, User
 from pdf_extractor import extract_text, is_valid_pdf
 from llm_service import (
-    extract_title, generate_summary, extract_concepts,
+    generate_summary, extract_concepts,
     extract_relations, identify_gaps, generate_hypotheses,
     design_experiments
 )

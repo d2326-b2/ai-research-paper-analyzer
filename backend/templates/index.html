@@ -19,9 +19,13 @@
       <span class="brand-name">HypoGen <span class="brand-ai">AI</span></span>
     </div>
     <div class="nav-links">
-      <a href="#" class="nav-link active" onclick="showHome()">Home</a>
-      <a href="#" class="nav-link" id="nav-analyze" onclick="showApp()" style="display:none">Analyzer</a>
+    <a href="#" class="nav-link active" onclick="showHome()">Home</a>
+    <a href="#" class="nav-link" id="nav-analyze" onclick="showApp()" style="display:none">Analyzer</a>
+    <div class="nav-user">
+    <span class="nav-username">👤 {{ user.name }}</span>
+    <a href="/logout" class="nav-logout">Logout</a>
     </div>
+</div>
   </nav>
 
   <!-- ==================== LANDING PAGE ==================== -->
