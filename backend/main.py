@@ -108,9 +108,6 @@ def analyze_paper():
         if not is_valid_pdf(text):
             return jsonify({'error': 'Scanned PDF detected.'}), 400
 
-        print('Step 2: Extracting title...')
-        title = extract_title(text)
-
         print('Step 3: Generating summary...')
         summary = generate_summary(text)
 
@@ -134,7 +131,6 @@ def analyze_paper():
         return jsonify({
             'status': 'success',
             'filename': file.filename,
-            'title': title,
             'summary': summary,
             'concepts': concepts,
             'graph': {'nodes': concepts, 'edges': relations},
