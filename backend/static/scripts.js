@@ -3,6 +3,54 @@ let selectedFile = null;
 let cyInstance = null;
 let reportData = {};
 
+// ===================== PAGE NAVIGATION =====================
+function showHome() {
+  document.getElementById('landing-page').style.display = 'block';
+  document.getElementById('app-page').style.display = 'none';
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.querySelector('.nav-link:first-child').classList.add('active');
+}
+
+function showApp() {
+  document.getElementById('landing-page').style.display = 'none';
+  document.getElementById('app-page').style.display = 'block';
+  document.getElementById('nav-analyze').style.display = 'inline';
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  document.getElementById('nav-analyze').classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToFeatures() {
+  document.getElementById('features').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ===================== TAB NAVIGATION =====================
+function showTab(tabName) {
+  // Hide all tab contents
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  // Deactivate all tab buttons
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+
+  // Show selected tab
+  document.getElementById('tab-' + tabName).classList.add('active');
+
+  // Activate selected button
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    if (btn.getAttribute('onclick') === "showTab('" + tabName + "')") {
+      btn.classList.add('active');
+    }
+  });
+
+  // Refresh graph when graph tab is opened
+  if (tabName === 'graph' && cyInstance) {
+    setTimeout(() => {
+      cyInstance.fit(40);
+      cyInstance.center();
+      cyInstance.zoom(cyInstance.zoom() * 0.9);
+    }, 300);
+  }
+}
+
 const loaderMessages = [
   "Extracting text from PDF...",
   "Extracting paper title...",
@@ -215,13 +263,38 @@ function zoomOut()    { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() * 0.
 function displayGaps(gaps) {
   const container = document.getElementById('gaps-container');
   container.innerHTML = '';
-  if (!gaps || gaps.length === 0) {
+
+  console.log("Gaps received:", gaps);
+
+  if (!gaps) {
     container.innerHTML = '<p style="color:#64748b">No research gaps found</p>';
     return;
   }
-  gaps.forEach((gap, index) => {
-    container.innerHTML += '<div class="gap-card"><div class="gap-number">' + (index + 1) + '</div><p>' + gap + '</p></div>';
+
+  // Convert string to array if needed
+  if (typeof gaps === 'string') {
+    try { gaps = JSON.parse(gaps); }
+    catch { gaps = [gaps]; }
+  }
+
+  // Filter valid gaps
+  const validGaps = gaps.filter(g => g && g.toString().trim().length > 10);
+
+  if (validGaps.length === 0) {
+    container.innerHTML = '<p style="color:#64748b">No research gaps found</p>';
+    return;
+  }
+
+  validGaps.forEach((gap, index) => {
+    const div = document.createElement('div');
+    div.className = 'gap-card';
+    div.innerHTML =
+      '<div class="gap-number">' + (index + 1) + '</div>' +
+      '<p>' + gap.toString().trim() + '</p>';
+    container.appendChild(div);
   });
+
+  console.log("Gaps displayed:", validGaps.length);
 }
 
 

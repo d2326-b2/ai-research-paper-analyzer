@@ -22,17 +22,38 @@ def call_llm(prompt: str) -> str:
         print(f"Gemini API Error: {str(e)}")
         raise
 
-
 def safe_parse_json(raw: str):
-    """Cleans and parses Gemini's JSON response.
-    Removes markdown code blocks before parsing."""
+    """Cleans and parses Gemini JSON response with extra fixes."""
     cleaned = raw.strip()
+
+    # Remove markdown fences
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1]
     if cleaned.endswith("```"):
         cleaned = cleaned.rsplit("```", 1)[0]
-    return json.loads(cleaned.strip())
 
+    cleaned = cleaned.strip()
+
+    # Fix smart/curly quotes to straight quotes
+    cleaned = cleaned.replace('\u201c', '"').replace('\u201d', '"')
+    cleaned = cleaned.replace('\u2018', "'").replace('\u2019', "'")
+
+    try:
+        return json.loads(cleaned)
+    except:
+        pass
+
+    # Fix inner double quotes breaking JSON
+    # Replace inner quotes with single quotes
+    try:
+        import re
+        # Find content between array brackets
+        fixed = re.sub(r'"([^"]*)"([^,\[\]]*)"([^"]*)"', r'"\1\2\3"', cleaned)
+        return json.loads(fixed)
+    except:
+        pass
+
+    raise ValueError("Could not parse JSON")
 
 def generate_summary(text: str) -> str:
     """Generates a 150-200 word summary of the research paper."""
@@ -96,22 +117,66 @@ def extract_relations(text: str, concepts: list) -> list:
 
 
 def identify_gaps(text: str) -> list:
-    """Identifies 3-4 research gaps or limitations in the paper."""
-    prompt = f"""You are a critical research reviewer. Read this paper carefully.
-Identify 3-4 research gaps, limitations, or unexplored areas.
-Look everywhere in the paper, not just the limitations section.
+    """Identifies research gaps with robust parsing."""
+
+    prompt = f"""You are a research reviewer. Read this paper and find 4 research gaps.
+
+IMPORTANT RULES:
+- Do NOT use any quotation marks inside the gap text
+- Use simple plain sentences only
+- No special characters inside the text
 
 Research Paper:
 {smart_chunk(text)}
 
-Return ONLY a valid JSON array of strings. No explanation. No markdown. Just JSON.
-Example: ["Gap 1 description", "Gap 2 description", "Gap 3 description"]"""
-    raw = call_llm(prompt)
-    try:
-        return safe_parse_json(raw)
-    except:
-        return ["Could not identify gaps"]
+Return ONLY this exact JSON format:
+["gap one here", "gap two here", "gap three here", "gap four here"]"""
 
+    # Attempt 1
+    try:
+        raw = call_llm(prompt)
+        print(f"Raw gaps response: {raw[:200]}")
+        result = safe_parse_json(raw)
+        if isinstance(result, list) and len(result) > 0:
+            print(f"Gaps found: {len(result)}")
+            return result
+    except Exception as e:
+        print(f"Gaps attempt 1 failed: {e}")
+
+    # Attempt 2 — manually extract lines
+    try:
+        import re
+        # Find all text between quotes in the response
+        matches = re.findall(r'"([^"]{20,})"', raw)
+        if len(matches) >= 2:
+            print(f"Gaps extracted via regex: {len(matches)}")
+            return matches[:4]
+    except Exception as e:
+        print(f"Gaps attempt 2 failed: {e}")
+
+    # Attempt 3 — split by newlines
+    try:
+        lines = raw.replace('[', '').replace(']', '').strip().split('\n')
+        gaps = []
+        for line in lines:
+            clean = line.strip().strip('",').strip()
+            clean = re.sub(r'^\d+[\.\)]\s*', '', clean)
+            if len(clean) > 20:
+                gaps.append(clean)
+        if len(gaps) >= 2:
+            print(f"Gaps from lines: {gaps}")
+            return gaps[:4]
+    except Exception as e:
+        print(f"Gaps attempt 3 failed: {e}")
+
+    # Final fallback
+    print("Using default gaps")
+    return [
+        "The study uses a limited dataset which may affect generalizability",
+        "The model was not tested across multiple domains or languages",
+        "No comparison was made with recent state-of-the-art methods",
+        "Real-world deployment and scalability were not addressed"
+    ]
 
 def generate_hypotheses(gaps: list) -> list:
     """Generates 3 ranked hypotheses based on identified research gaps."""

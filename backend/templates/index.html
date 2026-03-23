@@ -5,107 +5,312 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>AI Hypothesis Generator</title>
   <link rel="stylesheet" href="/static/style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.26.0/cytoscape.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-  <header>
-    <div class="header-inner">
-      <div class="header-badge">AI Powered</div>
-      <h1>Hypothesis Generator</h1>
-      <p>Upload any research paper and instantly get structured insights, knowledge graphs, and ranked hypotheses</p>
+  <!-- TOP NAV -->
+  <nav class="topnav">
+    <div class="nav-brand">
+      <span class="brand-dot"></span>
+      <span class="brand-name">HypoGen <span class="brand-ai">AI</span></span>
     </div>
-  </header>
+    <div class="nav-links">
+      <a href="#" class="nav-link active" onclick="showHome()">Home</a>
+      <a href="#" class="nav-link" id="nav-analyze" onclick="showApp()" style="display:none">Analyzer</a>
+    </div>
+  </nav>
 
-  <main>
+  <!-- ==================== LANDING PAGE ==================== -->
+  <div id="landing-page">
 
-    <div class="upload-card">
-      <div class="upload-area" id="upload-area">
-        <div class="upload-icon-wrap">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14 2 14 8 20 8"/>
-            <line x1="12" y1="18" x2="12" y2="12"/>
-            <line x1="9" y1="15" x2="15" y2="15"/>
-          </svg>
-        </div>
-        <p class="upload-text">Drop your research paper here</p>
-        <p class="upload-sub">Supports any PDF — medical, science, engineering, economics</p>
-        <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(this)">
-        <div id="file-name" class="file-name"></div>
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-bg">
+        <div class="hero-orb orb1"></div>
+        <div class="hero-orb orb2"></div>
+        <div class="hero-grid"></div>
       </div>
-      <button id="analyze-btn" onclick="analyzePaper()" disabled>
-        <span class="btn-icon">⚡</span> Analyze Paper
-      </button>
+      <div class="hero-content">
+        <div class="hero-badge">Powered by Gemini AI</div>
+        <h1 class="hero-title">
+          Turn Research Papers<br>
+          into <span class="hero-highlight">Breakthroughs</span>
+        </h1>
+        <p class="hero-desc">
+          Upload any research paper and get instant summaries, knowledge graphs,
+          research gaps, ranked hypotheses, and experiment designs — in seconds.
+        </p>
+        <div class="hero-btns">
+          <button class="btn-primary" onclick="showApp()">
+            Start Analyzing
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+          <button class="btn-ghost" onclick="scrollToFeatures()">See Features</button>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><span class="stat-num">7</span><span class="stat-label">AI Steps</span></div>
+          <div class="stat-div"></div>
+          <div class="stat"><span class="stat-num">Any</span><span class="stat-label">Domain</span></div>
+          <div class="stat-div"></div>
+          <div class="stat"><span class="stat-num">3</span><span class="stat-label">Hypothesis Levels</span></div>
+          <div class="stat-div"></div>
+          <div class="stat"><span class="stat-num">PDF</span><span class="stat-label">Report Export</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <section class="how-section" id="features">
+      <div class="section-wrap">
+        <div class="section-tag">How It Works</div>
+        <h2 class="section-title">From Paper to Insights in Seconds</h2>
+        <div class="steps-grid">
+          <div class="step-card">
+            <div class="step-num">01</div>
+            <div class="step-icon">📄</div>
+            <h3>Upload PDF</h3>
+            <p>Upload any text-based research paper PDF from any domain</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">02</div>
+            <div class="step-icon">🤖</div>
+            <h3>AI Analysis</h3>
+            <p>Gemini AI processes the paper through 7 sequential analysis steps</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">03</div>
+            <div class="step-icon">💡</div>
+            <h3>Get Insights</h3>
+            <p>Receive structured insights including hypotheses and experiment designs</p>
+          </div>
+          <div class="step-arrow">→</div>
+          <div class="step-card">
+            <div class="step-num">04</div>
+            <div class="step-icon">📥</div>
+            <h3>Export PDF</h3>
+            <p>Download a complete professional research report in PDF format</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="features-section">
+      <div class="section-wrap">
+        <div class="section-tag">Features</div>
+        <h2 class="section-title">Everything a Researcher Needs</h2>
+        <div class="features-grid">
+          <div class="feature-card feat-large">
+            <div class="feat-icon">📄</div>
+            <h3>Smart Summary</h3>
+            <p>150-200 word AI-generated summary covering problem, method, and findings of any research paper</p>
+            <div class="feat-tag">NLP Processing</div>
+          </div>
+          <div class="feature-card">
+            <div class="feat-icon">🔑</div>
+            <h3>Key Concepts</h3>
+            <p>Extracts 6-10 core technical concepts, methods, and datasets from the paper</p>
+          </div>
+          <div class="feature-card">
+            <div class="feat-icon">🕸️</div>
+            <h3>Knowledge Graph</h3>
+            <p>Interactive visual map showing how all key concepts connect to each other</p>
+          </div>
+          <div class="feature-card feat-large">
+            <div class="feat-icon">💡</div>
+            <h3>Ranked Hypotheses</h3>
+            <p>Three research hypotheses ranked by difficulty — Basic, Intermediate, and Advanced — each with rationale and grounded in identified gaps</p>
+            <div class="feat-tag">Research Intelligence</div>
+          </div>
+          <div class="feature-card">
+            <div class="feat-icon">🔍</div>
+            <h3>Research Gaps</h3>
+            <p>Identifies 3-4 unexplored areas and limitations in the paper</p>
+          </div>
+          <div class="feature-card">
+            <div class="feat-icon">🧪</div>
+            <h3>Experiment Design</h3>
+            <p>Structured experiment plans with methodology, data, metrics, and expected outcomes</p>
+          </div>
+          <div class="feature-card">
+            <div class="feat-icon">📥</div>
+            <h3>PDF Export</h3>
+            <p>Download full professional report with knowledge graph image included</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- WHO CAN USE -->
+    <section class="who-section">
+      <div class="section-wrap">
+        <div class="section-tag">Who It Helps</div>
+        <h2 class="section-title">Built for Every Researcher</h2>
+        <div class="who-grid">
+          <div class="who-card">
+            <div class="who-avatar">🎓</div>
+            <h3>Students</h3>
+            <p>Find research topics and understand papers quickly for assignments and projects</p>
+          </div>
+          <div class="who-card">
+            <div class="who-avatar">🔬</div>
+            <h3>PhD Researchers</h3>
+            <p>Identify literature gaps and justify new research directions efficiently</p>
+          </div>
+          <div class="who-card">
+            <div class="who-avatar">👨‍🏫</div>
+            <h3>Professors</h3>
+            <p>Generate research topics at different difficulty levels for students</p>
+          </div>
+          <div class="who-card">
+            <div class="who-avatar">🏢</div>
+            <h3>Industry Researchers</h3>
+            <p>Quickly explore new research directions without reading entire papers</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="cta-section">
+      <div class="cta-card">
+        <h2>Ready to Analyze Your Paper?</h2>
+        <p>Upload any research paper PDF and get complete insights in under 2 minutes</p>
+        <button class="btn-primary btn-large" onclick="showApp()">
+          Start for Free
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <footer class="landing-footer">
+      <p>AI Hypothesis Generator — Powered by Gemini AI</p>
+    </footer>
+
+  </div>
+
+
+  <!-- ==================== APP PAGE ==================== -->
+  <div id="app-page" style="display:none">
+
+    <!-- UPLOAD SECTION -->
+    <div class="app-upload-wrap">
+      <div class="app-header">
+        <h2 class="app-title">Research Paper Analyzer</h2>
+        <p class="app-sub">Upload a PDF to begin AI-powered analysis</p>
+      </div>
+
+      <div class="upload-card">
+        <div class="upload-area" id="upload-area">
+          <div class="upload-icon-wrap">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <line x1="9" y1="15" x2="15" y2="15"/>
+            </svg>
+          </div>
+          <p class="upload-text">Drop your research paper here or click to browse</p>
+          <p class="upload-sub">Text-based PDF only — any research domain</p>
+          <input type="file" id="pdf-input" accept=".pdf" onchange="handleFileSelect(this)">
+          <div id="file-name" class="file-name"></div>
+        </div>
+        <button id="analyze-btn" onclick="analyzePaper()" disabled>
+          <span>Analyze Paper</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+      </div>
     </div>
 
-    <div id="loader" class="loader" style="display:none">
-      <div class="loader-inner">
-        <div class="loader-ring">
-          <div></div><div></div><div></div><div></div>
-        </div>
+    <!-- LOADER -->
+    <div id="loader" style="display:none">
+      <div class="loader-card">
+        <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
         <p id="loader-text">Starting analysis...</p>
         <div class="loader-steps">
-          <span class="step">📄 Extract</span>
-          <span class="step-arrow">→</span>
-          <span class="step">🔑 Concepts</span>
-          <span class="step-arrow">→</span>
-          <span class="step">🕸️ Graph</span>
-          <span class="step-arrow">→</span>
-          <span class="step">🔍 Gaps</span>
-          <span class="step-arrow">→</span>
-          <span class="step">💡 Hypothesis</span>
+          <span class="lstep">Extract</span>
+          <span class="larr">→</span>
+          <span class="lstep">Concepts</span>
+          <span class="larr">→</span>
+          <span class="lstep">Graph</span>
+          <span class="larr">→</span>
+          <span class="lstep">Gaps</span>
+          <span class="larr">→</span>
+          <span class="lstep">Hypothesis</span>
         </div>
       </div>
     </div>
 
+    <!-- ERROR -->
     <div id="error-box" class="error-box" style="display:none"></div>
 
+    <!-- RESULTS -->
     <div id="results" style="display:none">
 
-      <!-- PAPER TITLE -->
-      <div class="paper-title-card">
-        <div class="title-meta">
-          <span class="title-badge">Research Paper</span>
-          <span id="filename-tag" class="filename-tag"></span>
+      <!-- Paper Title Bar -->
+      <div class="paper-title-bar">
+        <div class="ptb-left">
+          <span class="ptb-badge">Research Paper</span>
+          <span id="filename-tag" class="ptb-file"></span>
         </div>
         <h2 id="paper-title"></h2>
       </div>
 
-      <!-- 1. SUMMARY -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">📄</div>
-          <div>
-            <h2>Paper Summary</h2>
-            <p class="section-desc">AI-generated overview of the research</p>
-          </div>
-        </div>
-        <div class="content-box"><p id="summary-text"></p></div>
-      </section>
+      <!-- TAB NAVIGATION -->
+      <div class="tab-nav">
+        <button class="tab-btn active" onclick="showTab('summary')">
+          <span class="tab-icon">📄</span> Summary
+        </button>
+        <button class="tab-btn" onclick="showTab('concepts')">
+          <span class="tab-icon">🔑</span> Key Concepts
+        </button>
+        <button class="tab-btn" onclick="showTab('graph')">
+          <span class="tab-icon">🕸️</span> Knowledge Graph
+        </button>
+        <button class="tab-btn" onclick="showTab('gaps')">
+          <span class="tab-icon">🔍</span> Research Gaps
+        </button>
+        <button class="tab-btn" onclick="showTab('hypotheses')">
+          <span class="tab-icon">💡</span> Hypotheses
+        </button>
+        <button class="tab-btn" onclick="showTab('experiments')">
+          <span class="tab-icon">🧪</span> Experiments
+        </button>
+      </div>
 
-      <!-- 2. KEY CONCEPTS -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">🔑</div>
-          <div>
-            <h2>Key Concepts</h2>
-            <p class="section-desc">Core topics and techniques extracted from the paper</p>
-          </div>
+      <!-- TAB CONTENTS -->
+
+      <!-- SUMMARY TAB -->
+      <div class="tab-content active" id="tab-summary">
+        <div class="tab-header">
+          <h3>Paper Summary</h3>
+          <p>AI-generated overview covering problem, method, and findings</p>
+        </div>
+        <div class="summary-box">
+          <p id="summary-text"></p>
+        </div>
+      </div>
+
+      <!-- CONCEPTS TAB -->
+      <div class="tab-content" id="tab-concepts">
+        <div class="tab-header">
+          <h3>Key Concepts</h3>
+          <p>Core topics, methods, and techniques extracted from the paper</p>
         </div>
         <div id="concepts-container"></div>
-      </section>
+      </div>
 
-      <!-- 3. KNOWLEDGE GRAPH -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">🕸️</div>
-          <div>
-            <h2>Knowledge Graph</h2>
-            <p class="section-desc">Visual map of concepts and their relationships</p>
-          </div>
+      <!-- GRAPH TAB -->
+      <div class="tab-content" id="tab-graph">
+        <div class="tab-header">
+          <h3>Knowledge Graph</h3>
+          <p>Interactive visual map — drag nodes, scroll to zoom</p>
         </div>
         <div class="graph-legend">
           <span class="legend-item"><span class="legend-node"></span> Key Concept</span>
@@ -114,76 +319,60 @@
         <div id="graph-controls">
           <button onclick="resetGraph()">↺ Reset</button>
           <button onclick="fitGraph()">⊡ Fit All</button>
-          <button onclick="zoomIn()">＋ Zoom In</button>
-          <button onclick="zoomOut()">－ Zoom Out</button>
+          <button onclick="zoomIn()">+ Zoom In</button>
+          <button onclick="zoomOut()">- Zoom Out</button>
         </div>
         <div id="cy"></div>
-      </section>
+      </div>
 
-      <!-- 4. RESEARCH GAPS -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">🔍</div>
-          <div>
-            <h2>Research Gaps</h2>
-            <p class="section-desc">Limitations and unexplored areas identified in the paper</p>
-          </div>
+      <!-- GAPS TAB -->
+      <div class="tab-content" id="tab-gaps">
+        <div class="tab-header">
+          <h3>Research Gaps</h3>
+          <p>Limitations and unexplored areas identified in the paper</p>
         </div>
         <div id="gaps-container"></div>
-      </section>
+      </div>
 
-      <!-- 5. HYPOTHESES -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">💡</div>
-          <div>
-            <h2>Generated Hypotheses</h2>
-            <p class="section-desc">Three ranked research hypotheses based on identified gaps</p>
-          </div>
+      <!-- HYPOTHESES TAB -->
+      <div class="tab-content" id="tab-hypotheses">
+        <div class="tab-header">
+          <h3>Generated Hypotheses</h3>
+          <p>Three ranked hypotheses based on identified research gaps</p>
         </div>
         <div class="hyp-legend">
-          <span class="hyp-badge basic-badge">🟢 Basic — Low risk, easy to test</span>
-          <span class="hyp-badge inter-badge">🟡 Intermediate — Moderate effort</span>
-          <span class="hyp-badge adv-badge">🔴 Advanced — High risk, innovative</span>
+          <span class="hyp-badge basic-badge">Basic — Low risk</span>
+          <span class="hyp-badge inter-badge">Intermediate — Moderate effort</span>
+          <span class="hyp-badge adv-badge">Advanced — Innovative</span>
         </div>
         <div id="hypotheses-container"></div>
-      </section>
+      </div>
 
-      <!-- 6. EXPERIMENTS -->
-      <section class="result-section">
-        <div class="section-header">
-          <div class="section-icon">🧪</div>
-          <div>
-            <h2>Experiment Designs</h2>
-            <p class="section-desc">Structured plans to test each hypothesis</p>
-          </div>
+      <!-- EXPERIMENTS TAB -->
+      <div class="tab-content" id="tab-experiments">
+        <div class="tab-header">
+          <h3>Experiment Designs</h3>
+          <p>Structured plans to test each hypothesis</p>
         </div>
         <div id="experiments-container"></div>
-      </section>
+      </div>
 
-      <!-- DOWNLOAD SECTION -->
-      <div class="download-section">
-        <div class="download-card">
-          <div class="download-info">
-            <div class="download-icon">📥</div>
-            <div>
-              <h3>Download Full Report</h3>
-              <p>Get the complete analysis as a structured PDF report</p>
-            </div>
+      <!-- DOWNLOAD -->
+      <div class="download-bar">
+        <div class="dl-info">
+          <span class="dl-icon">📥</span>
+          <div>
+            <strong>Download Full Report</strong>
+            <p>Complete analysis as a professional PDF</p>
           </div>
-          <button id="download-btn" onclick="downloadPDF()">
-            ⬇ Download PDF Report
-          </button>
         </div>
+        <button id="download-btn" onclick="downloadPDF()">Download PDF Report</button>
       </div>
 
     </div>
-  </main>
+  </div>
 
-  <footer>
-    <p>AI Hypothesis Generator — Powered by Gemini AI</p>
-  </footer>
+  <script src="/static/scripts.js"></script>
 
-  <script src="/static/script.js"></script>
 </body>
 </html>
