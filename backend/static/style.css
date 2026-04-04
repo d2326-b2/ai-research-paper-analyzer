@@ -1,3 +1,27 @@
+/**
+ * HypoGen Main Stylesheet
+ * 
+ * Comprehensive styling for the research paper analyzer interface.
+ * Provides:
+ * - Modern design with smooth animations
+ * - Responsive grid and flexbox layouts
+ * - Theme variables for consistent color scheme
+ * - Component-based styling (navigation, cards, buttons, etc.)
+ * - Dark mode ready with CSS custom properties
+ * - Knowledge graph visualization styling
+ * 
+ * Design System:
+ * - Color palette: Blues, grays, status indicators (green/warning/red)
+ * - Typography: Playfair Display (headings), DM Sans (body)
+ * - Spacing: 4px base unit (8, 12, 16, 24, 32, etc.)
+ * - Shadows & blur: Depth through layered shadows
+ * - Radius: 16px standard for modern look
+ * 
+ * @author Your Name
+ * @version 1.0.0
+ * @date 2024-04-04
+ */
+
 /* ===================== VARIABLES ===================== */
 :root {
   --primary: #2563eb;

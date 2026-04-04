@@ -1,7 +1,29 @@
-// scripts.js
-let selectedFile = null;
-let cyInstance = null;
-let reportData = {};
+/**
+ * HypoGen Frontend Application Script
+ * 
+ * Handles all client-side functionality:
+ * - File upload and processing
+ * - PDF analysis workflow
+ * - Dynamic UI rendering
+ * - Knowledge graph visualization
+ * - Result display and interactivity
+ * 
+ * Dependencies:
+ * - Cytoscape.js (knowledge graph visualization)
+ * - jsPDF (PDF export)
+ * 
+ * @author Your Name
+ * @version 1.0.0
+ * @date 2024-04-04
+ */
+
+// ===============================================
+// GLOBAL STATE VARIABLES
+// ===============================================
+
+let selectedFile = null;           // Currently selected PDF file
+let cyInstance = null;             // Cytoscape knowledge graph instance
+let reportData = {};               // Complete analysis results from server
 
 // ===================== PAGE NAVIGATION =====================
 function showHome() {

@@ -1,5 +1,18 @@
-# llm_service.py
-# Handles all Gemini AI calls for paper analysis
+"""
+HypoGen LLM Service Module
+Handles all Google Gemini AI interactions and research paper analysis
+
+This module provides advanced NLP functions using Google's Gemini API:
+- Summary generation from research papers
+- Key concept extraction and identification
+- Relationship mapping between concepts
+- Research gap identification
+- Hypothesis generation (3 levels: basic, intermediate, advanced)
+- Experiment design proposal
+
+Author: Your Name
+Date: 2024
+"""
 
 import google.generativeai as genai
 import os
@@ -13,8 +26,24 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash")
 
 
+# ============= CORE LLM COMMUNICATION =============
+
 def call_llm(prompt: str) -> str:
-    """Sends a prompt to Gemini and returns the response text."""
+    """
+    Send a prompt to Google Gemini and get a response.
+    
+    This is the base function for all LLM interactions.
+    Handles API calls and basic error reporting.
+    
+    Args:
+        prompt (str): The prompt/instruction to send to Gemini
+        
+    Returns:
+        str: The text response from the model
+        
+    Raises:
+        Exception: If the API call fails
+    """
     try:
         response = model.generate_content(prompt)
         return response.text
@@ -22,11 +51,29 @@ def call_llm(prompt: str) -> str:
         print(f"Gemini API Error: {str(e)}")
         raise
 
-def safe_parse_json(raw: str):
-    """Cleans and parses Gemini JSON response with extra fixes."""
+
+def safe_parse_json(raw: str) -> dict | list:
+    """
+    Safely parse and clean JSON responses from Gemini.
+    
+    Gemini sometimes returns JSON wrapped in markdown code fences
+    or with smart quotes. This function handles multiple edge cases:
+    - Removes markdown code fences (```)
+    - Converts smart/curly quotes to straight quotes
+    - Attempts intelligent quote fixing for malformed JSON
+    
+    Args:
+        raw (str): Raw JSON string from Gemini
+        
+    Returns:
+        dict | list: Parsed JSON object or array
+        
+    Raises:
+        ValueError: If JSON cannot be parsed after all fix attempts
+    """
     cleaned = raw.strip()
 
-    # Remove markdown fences
+    # Remove markdown fences if present
     if cleaned.startswith("```"):
         cleaned = cleaned.split("\n", 1)[1]
     if cleaned.endswith("```"):
@@ -43,20 +90,34 @@ def safe_parse_json(raw: str):
     except:
         pass
 
-    # Fix inner double quotes breaking JSON
-    # Replace inner quotes with single quotes
+    # Try to fix inner double quotes breaking JSON structure
     try:
         import re
-        # Find content between array brackets
         fixed = re.sub(r'"([^"]*)"([^,\[\]]*)"([^"]*)"', r'"\1\2\3"', cleaned)
         return json.loads(fixed)
     except:
         pass
 
-    raise ValueError("Could not parse JSON")
+    raise ValueError("Could not parse JSON from LLM response")
+
+
+# ============= ANALYSIS FUNCTIONS =============
 
 def generate_summary(text: str) -> str:
-    """Generates a 150-200 word summary of the research paper."""
+    """
+    Generate a concise summary of the research paper.
+    
+    Creates a 150-200 word summary covering:
+    - The problem the paper solves
+    - Methods or approaches used
+    - Key results and findings
+    
+    Args:
+        text (str): Full text of the research paper
+        
+    Returns:
+        str: Research paper summary (single paragraph)
+    """
     prompt = f"""You are a research analyst. Read this research paper carefully.
 Write a clear concise summary in 150-200 words covering:
 - What problem it solves
@@ -71,8 +132,25 @@ Write as a single paragraph. No bullet points."""
 
 
 def extract_concepts(text: str) -> list:
-    """Extracts 8-10 most important key concepts from the paper.
-    Kept minimal to avoid knowledge graph overcrowding."""
+    """
+    Extract the most important key concepts from the paper.
+    
+    Identifies 8-10 central concepts that are crucial to understanding
+    the paper. These may include:
+    - Methods, models, or algorithms
+    - Datasets or data sources
+    - Key variables or parameters
+    - Diseases, chemicals, or biological entities
+    - Techniques or methodologies
+    
+    Limited to 8-10 concepts to avoid knowledge graph overcrowding.
+    
+    Args:
+        text (str): Full text of the research paper
+        
+    Returns:
+        list: Array of concept strings (e.g., ["BERT", "NLP", "Transformer"])
+    """
     prompt = f"""You are a research analyst. Read this research paper and extract
 ONLY the 8-10 MOST important key concepts.
 These can be models, methods, datasets, techniques, variables, diseases, chemicals, or algorithms.
@@ -89,8 +167,27 @@ Example: ["concept1", "concept2", "concept3"]"""
     except:
         return ["Could not extract concepts"]
 
+
 def extract_relations(text: str, concepts: list) -> list:
-    """Finds relationships between ALL concepts."""
+    """
+    Extract relationships and connections between concepts.
+    
+    Creates a knowledge graph by identifying how concepts relate to each other.
+    Returns relationship triples in: (subject, relation, object) format.
+    
+    Ensures comprehensive coverage - every concept appears in at least one relation.
+    
+    Args:
+        text (str): Full text of the research paper
+        concepts (list): List of key concepts to relate
+        
+    Returns:
+        list: Array of relationship objects:
+            [
+                {"subject": "BERT", "relation": "improves", "object": "accuracy"},
+                {"subject": "dataset", "relation": "trains", "object": "BERT"}
+            ]
+    """
     prompt = f"""You are a research analyst. Given these concepts: {concepts}
 
     IMPORTANT RULES:
@@ -117,8 +214,23 @@ def extract_relations(text: str, concepts: list) -> list:
 
 
 def identify_gaps(text: str) -> list:
-    """Identifies research gaps with robust parsing."""
-
+    """
+    Identify 4 key research gaps in the paper.
+    
+    Research gaps are areas where:
+    - The paper's methodology could be improved
+    - Generalizability is limited
+    - Comparisons with other approaches are missing
+    - Real-world applications are not addressed
+    
+    Multiple parsing strategies ensure robustness against API response variations.
+    
+    Args:
+        text (str): Full text of the research paper
+        
+    Returns:
+        list: Array of 4 gap strings describing limitations and future work
+    """
     prompt = f"""You are a research reviewer. Read this paper and find 4 research gaps.
 
 IMPORTANT RULES:
@@ -132,7 +244,7 @@ Research Paper:
 Return ONLY this exact JSON format:
 ["gap one here", "gap two here", "gap three here", "gap four here"]"""
 
-    # Attempt 1
+    # Attempt 1: Direct JSON parsing
     try:
         raw = call_llm(prompt)
         print(f"Raw gaps response: {raw[:200]}")
@@ -143,10 +255,9 @@ Return ONLY this exact JSON format:
     except Exception as e:
         print(f"Gaps attempt 1 failed: {e}")
 
-    # Attempt 2 — manually extract lines
+    # Attempt 2: Extract via regex patterns
     try:
         import re
-        # Find all text between quotes in the response
         matches = re.findall(r'"([^"]{20,})"', raw)
         if len(matches) >= 2:
             print(f"Gaps extracted via regex: {len(matches)}")
@@ -154,7 +265,7 @@ Return ONLY this exact JSON format:
     except Exception as e:
         print(f"Gaps attempt 2 failed: {e}")
 
-    # Attempt 3 — split by newlines
+    # Attempt 3: Extract via line splitting
     try:
         lines = raw.replace('[', '').replace(']', '').strip().split('\n')
         gaps = []
@@ -169,7 +280,7 @@ Return ONLY this exact JSON format:
     except Exception as e:
         print(f"Gaps attempt 3 failed: {e}")
 
-    # Final fallback
+    # Final fallback: Return sensible defaults
     print("Using default gaps")
     return [
         "The study uses a limited dataset which may affect generalizability",
@@ -178,8 +289,32 @@ Return ONLY this exact JSON format:
         "Real-world deployment and scalability were not addressed"
     ]
 
+
 def generate_hypotheses(gaps: list) -> list:
-    """Generates 3 ranked hypotheses based on identified research gaps."""
+    """
+    Generate 3 ranked hypotheses based on identified research gaps.
+    
+    Creates three hypotheses at different complexity/novelty levels:
+    1. BASIC - Small, incremental improvement on existing work
+    2. INTERMEDIATE - Moderate novelty combining existing approaches
+    3. ADVANCED - High-risk, high-reward innovative idea
+    
+    Each hypothesis includes rationale explaining how it addresses the gaps.
+    
+    Args:
+        gaps (list): List of research gaps identified in the paper
+        
+    Returns:
+        list: Array of hypothesis objects:
+            [
+                {
+                    "level": "Basic",
+                    "hypothesis": "hypothesis statement",
+                    "rationale": "why this addresses the gaps"
+                },
+                ...
+            ]
+    """
     prompt = f"""You are a research scientist. Based on these research gaps: {gaps}
 
 Generate exactly 3 ranked hypotheses:
@@ -214,7 +349,32 @@ Format:
 
 
 def design_experiments(hypotheses: list) -> list:
-    """Designs a structured experiment plan for each hypothesis."""
+    """
+    Design structured experiment plans for testing hypotheses.
+    
+    For each hypothesis, proposes:
+    - Clear experimental objective
+    - Step-by-step methodology
+    - Required data and resources
+    - Metrics for evaluation
+    - Expected outcomes
+    
+    Args:
+        hypotheses (list): List of hypothesis objects to design experiments for
+        
+    Returns:
+        list: Array of experiment plan objects:
+            [
+                {
+                    "hypothesis": "hypothesis being tested",
+                    "objective": "what this experiment aims to prove",
+                    "methodology": "1. First step 2. Second step...",
+                    "required_data": "Item 1 | Item 2 | Item 3",
+                    "evaluation_metrics": "Metric 1 | Metric 2 | Metric 3",
+                    "expected_outcome": "expected result validating hypothesis"
+                }
+            ]
+    """
     prompt = f"""You are an expert research methodologist.
 Design a structured experiment plan for each hypothesis.
 
