@@ -222,6 +222,42 @@ function displayGraph(graph) {
     data: { id: 'edge_' + i, source: e.subject, target: e.object, label: e.relation || '' }
   }));
 
+  // Choose best layout based on graph structure
+  const edgeCount = edges.length;
+  const nodeCountForLayout = nodes.length;
+  // Use cose (force-directed) for complex graphs, breadthfirst for simple trees
+  const hasMultipleRoots = edges.filter(e => !edges.some(e2 => e2.data.target === e.data.source)).length > 2;
+  const layoutName = (edgeCount > nodeCountForLayout || hasMultipleRoots) ? 'cose' : 'breadthfirst';
+
+  const layoutConfig = layoutName === 'cose' ? {
+    name: 'cose',
+    idealEdgeLength: 120,
+    nodeOverlap: 20,
+    refresh: 20,
+    fit: true,
+    padding: 40,
+    randomize: false,
+    componentSpacing: 100,
+    nodeRepulsion: 450000,
+    edgeElasticity: 100,
+    nestingFactor: 5,
+    gravity: 80,
+    numIter: 1000,
+    initialTemp: 200,
+    coolingFactor: 0.95,
+    minTemp: 1.0,
+    animate: true,
+    animationDuration: 800
+  } : {
+    name: 'breadthfirst',
+    directed: true,
+    padding: 40,
+    spacingFactor: 1.8,
+    animate: true,
+    animationDuration: 800,
+    fit: true
+  };
+
   cyInstance = cytoscape({
     container: container,
     elements: [...nodes, ...edges],
@@ -237,9 +273,9 @@ function displayGraph(graph) {
           'font-size': '11px',
           'font-weight': 'bold',
           'font-family': 'DM Sans, sans-serif',
-          'padding': '16px',
+          'padding': '14px',
           'text-wrap': 'wrap',
-          'text-max-width': '120px',
+          'text-max-width': '110px',
           'width': 'label',
           'height': 'label',
           'shape': 'round-rectangle',
@@ -259,43 +295,55 @@ function displayGraph(graph) {
           'target-arrow-shape': 'triangle',
           'line-color': '#94a3b8',
           'target-arrow-color': '#94a3b8',
-          'font-size': '10px',
+          'font-size': '9px',
           'font-weight': '600',
-          'color': '#475569',
-          'text-background-color': '#ffffff',
+          'color': '#334155',
+          'text-background-color': '#f8fafc',
           'text-background-opacity': 1,
-          'text-background-padding': '4px',
+          'text-background-padding': '3px',
           'text-border-width': 1,
           'text-border-color': '#e2e8f0',
           'text-border-opacity': 1,
           'text-rotation': 'autorotate',
           'width': 2,
-          'opacity': 0.9
+          'opacity': 0.85
         }
       }
     ],
-    layout: {
-      name: 'breadthfirst',
-      directed: true,
-      padding: 40,
-      spacingFactor: 2.0,
-      animate: true,
-      animationDuration: 800,
-      fit: true
-    }
+    layout: layoutConfig
   });
 
   cyInstance.on('layoutstop', function() {
     cyInstance.fit(40);
     cyInstance.center();
-    cyInstance.zoom(cyInstance.zoom() * 0.9);
+    cyInstance.zoom(cyInstance.zoom() * 0.88);
   });
+  
+  // Enable zoom and pan functionality
+  enableGraphZoom();
 }
 
 function resetGraph() { if (cyInstance) cyInstance.reset(); }
 function fitGraph()   { if (cyInstance) { cyInstance.fit(40); cyInstance.center(); } }
 function zoomIn()     { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() * 1.3); cyInstance.center(); } }
-function zoomOut()    { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() * 0.7); cyInstance.center(); } }
+function zoomOut()    { if (cyInstance) { cyInstance.zoom(cyInstance.zoom() / 1.3); cyInstance.center(); } }
+
+// Add mouse wheel zoom support
+function enableGraphZoom() {
+  if (!cyInstance) return;
+  
+  // Disable default scroll behavior and use for zoom
+  cyInstance.on('wheel', function(event) {
+    event.preventDefault();
+    const wheelDelta = event.originalEvent.deltaY > 0 ? 0.85 : 1.15;
+    cyInstance.zoom(cyInstance.zoom() * wheelDelta);
+  });
+  
+  // Add pan on mouse drag
+  cyInstance.on('box', function() {
+    cyInstance.elements().unselect();
+  });
+}
 
 
 function displayGaps(gaps) {
@@ -374,8 +422,9 @@ function displayExperiments(experiments) {
     const methodologyHTML = formatMethodology(exp.methodology || 'N/A');
     const requiredDataHTML = formatBullets(exp.required_data || 'N/A');
     const metricsHTML = formatBullets(exp.evaluation_metrics || 'N/A');
+    const outcomeHTML = formatBullets(exp.expected_outcome || 'N/A');
 
-    container.innerHTML += '<div class="exp-card"><div class="exp-header"><div class="exp-header-top"><div class="exp-number">Experiment ' + (index + 1) + '</div></div><div class="exp-hypothesis-box"><span class="exp-hyp-label">Testing Hypothesis:</span><p class="exp-hyp-text">' + hypothesis + '</p></div></div><div class="exp-body"><div class="exp-field"><label>Objective</label><p>' + (exp.objective || 'N/A') + '</p></div><div class="exp-field full-width"><label>Methodology</label>' + methodologyHTML + '</div><div class="exp-field"><label>Required Data</label>' + requiredDataHTML + '</div><div class="exp-field"><label>Evaluation Metrics</label>' + metricsHTML + '</div><div class="exp-field full-width"><label>Expected Outcome</label><p>' + (exp.expected_outcome || 'N/A') + '</p></div></div></div>';
+    container.innerHTML += '<div class="exp-card"><div class="exp-header"><div class="exp-header-top"><div class="exp-number">Experiment ' + (index + 1) + '</div></div><div class="exp-hypothesis-box"><span class="exp-hyp-label">Testing Hypothesis:</span><p class="exp-hyp-text">' + hypothesis + '</p></div></div><div class="exp-body"><div class="exp-field"><label>Objective</label><p>' + (exp.objective || 'N/A') + '</p></div><div class="exp-field full-width"><label>Methodology</label>' + methodologyHTML + '</div><div class="exp-field"><label>Required Data</label>' + requiredDataHTML + '</div><div class="exp-field"><label>Evaluation Metrics</label>' + metricsHTML + '</div><div class="exp-field full-width"><label>Expected Outcome</label>' + outcomeHTML + '</div></div></div>';
   });
 }
 
@@ -393,9 +442,45 @@ function formatMethodology(text) {
 function formatBullets(text) {
   if (!text || text === 'N/A') return '<p>N/A</p>';
   text = String(text);
-  const items = text.split('|').map(s => s.trim()).filter(s => s);
-  if (items.length <= 1) return '<p style="text-align:justify">' + text + '</p>';
-  return '<ul class="exp-list">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
+  
+  // Try to split: first by newlines, then by pipes, then by bullets
+  let items = [];
+  
+  // Check if we have newlines (from JSON, these are already actual newlines)
+  if (text.includes('\n')) {
+    items = text.split('\n').map(s => s.trim()).filter(s => s);
+  } else if (text.includes('|')) {
+    // Check if we have pipes
+    items = text.split('|').map(s => s.trim()).filter(s => s);
+  } else if (text.includes('•')) {
+    // Check if we have bullet points
+    items = text.split('•').map(s => s.trim()).filter(s => s);
+  }
+  
+  // If no splits found, treat as single paragraph
+  if (items.length === 0) {
+    items = [text];
+  }
+  
+  // Clean each item: remove any remaining bullets, dashes, asterisks
+  items = items.map(s => {
+    s = s.trim();
+    s = s.replace(/^[\s•\-\*]+/, '').trim();
+    return s;
+  }).filter(s => s && s.length > 0);
+  
+  // Debug logging
+  console.log('formatBullets - text length:', text.length, 'items count:', items.length);
+  
+  // If only one item or no items, return as paragraph
+  if (items.length <= 1) {
+    return '<p style="text-align:justify">' + text + '</p>';
+  }
+  
+  // Multiple items: return as list
+  const html = '<ul class="exp-list">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
+  console.log('formatBullets - returning list with', items.length, 'items');
+  return html;
 }
 
 
@@ -498,16 +583,91 @@ async function downloadPDF() {
       if (!text) return '';
       text = String(text);
       // Replace smart quotes with regular quotes
-      text = text.replace(/[""]/g, '"');
-      text = text.replace(/['']/g, "'");
+      text = text.replace(/[\u201c\u201d]/g, '"');
+      text = text.replace(/[\u2018\u2019]/g, "'");
       // Replace em dashes with regular dash
-      text = text.replace(/—/g, '-');
-      text = text.replace(/–/g, '-');
+      text = text.replace(/\u2014/g, '-');
+      text = text.replace(/\u2013/g, '-');
       // Remove multiple spaces
       text = text.replace(/\s+/g, ' ');
       // Fix spacing around percentages (no space before %)
       text = text.replace(/\s+%/g, '%');
       return text.trim();
+    }
+
+    // Format methodology steps: split numbered items onto their own lines
+    function formatSteps(text) {
+      if (!text) return '';
+      text = cleanText(text);
+      // Convert inline numbered steps like "1. Step 2. Step" into newline-separated
+      text = text.replace(/\s+(\d+)\.\s+/g, '\n$1. ');
+      return text.trim();
+    }
+
+    // Format bullet points: split pipe or newline-separated items onto their own lines
+    function formatBulletPoints(text) {
+      if (!text || text === 'N/A') return text;
+      text = cleanText(text);
+      
+      // Try to split: first by newlines, then by pipes, then by bullets
+      // Note: JSON already converts \\n to \n, so we just check for actual newlines
+      let items = [];
+      
+      if (text.includes('\n')) {
+        items = text.split('\n').map(s => s.trim()).filter(s => s);
+      } else if (text.includes('|')) {
+        items = text.split('|').map(s => s.trim()).filter(s => s);
+      } else if (text.includes('•')) {
+        items = text.split('•').map(s => s.trim()).filter(s => s);
+      }
+      
+      // If no splits found, return original
+      if (items.length === 0) {
+        return text;
+      }
+      
+      // Clean each item: remove any remaining bullets, dashes, asterisks
+      items = items.map(s => {
+        s = s.trim();
+        s = s.replace(/^[\s•\-\*]+/, '').trim();
+        return s;
+      }).filter(s => s && s.length > 0);
+      
+      if (items.length <= 1) return text;
+      return items.join('\n');
+    }
+
+    // Render multi-line text with proper line breaks (supports \n in text)
+    function multiLineText(text, x, startY, maxW, lineH, color, size, bold) {
+      doc.setFontSize(size || 9.5);
+      doc.setFont('helvetica', bold ? 'bold' : 'normal');
+      doc.setTextColor(...(color || [71, 85, 105]));
+      const paragraphs = text.split('\n');
+      let currentY = startY;
+      let totalLines = 0;
+      paragraphs.forEach(para => {
+        if (para.trim() === '') { currentY += (lineH || 5.5) * 0.5; totalLines += 0.5; return; }
+        const lines = doc.splitTextToSize(para.trim(), maxW);
+        lines.forEach(line => {
+          doc.text(line, x, currentY);
+          currentY += (lineH || 5.5);
+          totalLines++;
+        });
+      });
+      return totalLines;
+    }
+
+    // Count lines for multi-line text (to estimate box height)
+    function countMultiLines(text, maxW, size) {
+      if (!text) return 1;
+      doc.setFontSize(size || 9.5);
+      const paragraphs = text.split('\n');
+      let total = 0;
+      paragraphs.forEach(para => {
+        if (para.trim() === '') { total += 0.5; return; }
+        total += doc.splitTextToSize(para.trim(), maxW).length;
+      });
+      return Math.max(1, total);
     }
 
     // ===================== COVER PAGE =====================
@@ -737,18 +897,27 @@ async function downloadPDF() {
       reportData.graph.edges.slice(0, 10).forEach(edge => {
         checkPage(8);
         
-        // Clean and prepare relationship text
-        let subject = String(edge.subject || 'Unknown').trim();
-        let relation = String(edge.relation || 'relates to').trim();
-        let object = String(edge.object || 'Unknown').trim();
+        // Aggressive cleaning function for all special characters
+        const cleanStr = (str) => {
+          if (!str) return '';
+          str = String(str).trim();
+          // Remove smart quotes - all variants
+          str = str.replace(/[""]/g, '"').replace(/['']/g, "'");
+          // Remove em-dashes and en-dashes
+          str = str.replace(/[–—]/g, '-');
+          // Remove any other problematic Unicode characters (keep ASCII only)
+          str = str.replace(/[^\x00-\x7F]/g, '');
+          // Clean up multiple spaces
+          str = str.replace(/\s+/g, ' ').trim();
+          return str;
+        };
         
-        // Remove smart quotes and special characters from relationship data
-        subject = subject.replace(/[""]/g, '"').replace(/['']/g, "'");
-        relation = relation.replace(/[""]/g, '"').replace(/['']/g, "'");
-        object = object.replace(/[""]/g, '"').replace(/['']/g, "'");
+        let subject = cleanStr(edge.subject || 'Unknown');
+        let relation = cleanStr(edge.relation || 'relates to');
+        let object = cleanStr(edge.object || 'Unknown');
         
-        // Format the relationship
-        const rel = subject + ' → ' + relation + ' → ' + object;
+        // Format the relationship with ASCII arrow
+        const rel = subject + ' -> ' + relation + ' -> ' + object;
         
         doc.setFontSize(8.5);
         doc.setFont('helvetica', 'normal');
@@ -916,19 +1085,22 @@ async function downloadPDF() {
 
         y += headerH;
 
-        // Fields
+        // Fields — methodology uses formatSteps to split numbered steps onto separate lines
         const fields = [
-          { label: 'OBJECTIVE',          text: obj,  bg: [248,250,252], labelColor: PRIMARY   },
-          { label: 'METHODOLOGY',        text: meth, bg: [248,250,252], labelColor: PRIMARY   },
-          { label: 'REQUIRED DATA',      text: data, bg: [248,250,252], labelColor: PRIMARY   },
-          { label: 'EVALUATION METRICS', text: metr, bg: [248,250,252], labelColor: PRIMARY   },
-          { label: 'EXPECTED OUTCOME',   text: out,  bg: GREEN_BG,      labelColor: SUCCESS   },
+          { label: 'OBJECTIVE',          text: cleanText(obj),         bg: [248,250,252], labelColor: PRIMARY, isSteps: false },
+          { label: 'METHODOLOGY',        text: formatSteps(meth),      bg: [248,250,252], labelColor: PRIMARY, isSteps: true  },
+          { label: 'REQUIRED DATA',      text: formatBulletPoints(data),     bg: [248,250,252], labelColor: PRIMARY, isSteps: false },
+          { label: 'EVALUATION METRICS', text: formatBulletPoints(metr),     bg: [248,250,252], labelColor: PRIMARY, isSteps: false },
+          { label: 'EXPECTED OUTCOME',   text: formatBulletPoints(out),      bg: GREEN_BG,      labelColor: SUCCESS, isSteps: false },
         ];
 
         fields.forEach(field => {
-          const cleanedText = cleanText(field.text);
-          const fLines = doc.splitTextToSize(cleanedText, cW - 14);
-          const fH = fLines.length * 5.5 + 14;
+          const lineH = 5.5;
+          const textX = margin + 5;
+          const textMaxW = cW - 12;
+          // Count how many lines this will take (including \n splits for steps)
+          const lineCount = countMultiLines(field.text, textMaxW, 9.5);
+          const fH = lineCount * lineH + 16;
           checkPage(fH + 4);
 
           doc.setFillColor(...field.bg);
@@ -939,15 +1111,10 @@ async function downloadPDF() {
           doc.setFontSize(7.5);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(...field.labelColor);
-          doc.text(field.label, margin + 5, y + 6);
+          doc.text(field.label, textX, y + 6);
 
-          // Display field text with proper formatting (left-aligned, cleaned)
-          doc.setFontSize(9.5);
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(71, 85, 105);
-          fLines.forEach((line, idx) => {
-            doc.text(line, margin + 5, y + 12 + idx * 5.5);
-          });
+          // Render field text with proper multi-line support
+          multiLineText(field.text, textX, y + 13, textMaxW, lineH, [71, 85, 105], 9.5, false);
           y += fH;
         });
 

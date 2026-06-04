@@ -342,18 +342,19 @@
       <div class="tab-content" id="tab-graph">
         <div class="tab-header">
           <h3>Knowledge Graph</h3>
-          <p>Interactive visual map — drag nodes, scroll to zoom</p>
+          <p>Interactive visual map — Use controls below, scroll wheel to zoom, drag to pan</p>
         </div>
         <div class="graph-legend">
           <span class="legend-item"><span class="legend-node"></span> Key Concept</span>
           <span class="legend-item"><span class="legend-edge">→</span> Relationship</span>
         </div>
         <div id="graph-controls">
-          <button onclick="resetGraph()">↺ Reset</button>
-          <button onclick="fitGraph()">⊡ Fit All</button>
-          <button onclick="zoomIn()">+ Zoom In</button>
-          <button onclick="zoomOut()">- Zoom Out</button>
+          <button onclick="resetGraph()" title="Reset to original view">↺ Reset</button>
+          <button onclick="fitGraph()" title="Fit all nodes on screen">⊡ Fit All</button>
+          <button onclick="zoomIn()" title="Zoom in (or scroll up)">🔍+ Zoom In</button>
+          <button onclick="zoomOut()" title="Zoom out (or scroll down)">🔍− Zoom Out</button>
         </div>
+        <small style="display: block; color: #64748b; margin: -8px 0 12px 0;">💡 Tip: Use mouse wheel to zoom, click & drag to pan</small>
         <div id="cy"></div>
       </div>
 

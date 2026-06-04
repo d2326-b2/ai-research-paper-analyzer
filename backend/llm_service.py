@@ -40,7 +40,7 @@ else:
 
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-flash-lite-latest")
+    model = genai.GenerativeModel("gemini-2.0-flash")
     print("✓ Gemini model configured successfully")
 except Exception as e:
     print(f"⚠️  Warning: Gemini configuration failed: {str(e)}")
@@ -288,31 +288,39 @@ def extract_relations(text: str, concepts: list) -> list:
         """Remove smart quotes and special characters from text"""
         if not text:
             return ""
-        # Replace smart quotes with regular quotes
-        text = text.replace('"', '"').replace('"', '"')
-        text = text.replace(''', "'").replace(''', "'")
+        text = str(text)
+        # Replace ALL types of smart quotes and special Unicode characters
+        text = text.replace('"', '"').replace('"', '"')  # Unicode smart double quotes
+        text = text.replace(''', "'").replace(''', "'")  # Unicode smart single quotes
+        text = text.replace('–', '-').replace('—', '-')  # en-dash and em-dash
+        text = text.replace('…', '...')  # ellipsis
+        # Remove any remaining non-ASCII characters
+        text = ''.join(c if ord(c) < 128 or c.isspace() else '' for c in text)
         # Remove extra spaces
         text = ' '.join(text.split())
         return text.strip()
     
-    prompt = f"""You are a research analyst. Given these concepts: {concepts}
+    prompt = f"""You are a research analyst building a knowledge graph for a research paper.
 
-    IMPORTANT RULES:
-    - Every concept must appear in at least ONE relation
-    - No concept should be left unconnected
-    - Use short action verbs: improves, uses, trains, evaluates,
-      combines, extends, achieves, requires, produces, compares
-    - Create exactly {len(concepts)} relationship triples
+Given these key concepts: {concepts}
 
-    Research Paper:
-    {smart_chunk(text)}
+Create exactly {len(concepts)} relationship triples forming a well-connected knowledge graph.
 
-    Return ONLY a valid JSON array. No explanation. No markdown. Just JSON.
-    Example:
-    [
-    {{"subject": "BERT", "relation": "improves", "object": "accuracy"}},
-    {{"subject": "dataset", "relation": "trains", "object": "BERT"}}
-    ]"""
+STRICT RULES:
+1. Every concept MUST appear in at least one relation (as subject or object)
+2. Use ONLY these short verb phrases: improves, uses, trains, evaluates, combines, extends, achieves, requires, produces, compares, applies, enables, validates, measures, generates
+3. Relations must reflect actual relationships described in the research paper
+4. No self-loops (subject must differ from object)
+5. Build a connected graph — concepts should chain together, not be isolated pairs
+
+Research Paper:
+{smart_chunk(text)}
+
+Return ONLY a valid JSON array. No explanation. No markdown. Example:
+[
+  {{"subject": "BERT", "relation": "improves", "object": "accuracy"}},
+  {{"subject": "dataset", "relation": "trains", "object": "BERT"}}
+]"""
     raw = call_llm(prompt)
     try:
         relations = safe_parse_json(raw)
@@ -550,29 +558,28 @@ For these hypotheses, design REALISTIC and DETAILED experiment plans:
 
 CRITICAL INSTRUCTIONS:
 1. Each experiment must be SPECIFIC and TESTABLE with ALL FIVE required fields
-2. Include concrete, realistic steps (4-5 numbered steps minimum)
-3. List SPECIFIC required data/resources (not generic - mention real datasets, tools, or specific amounts)
-4. Include SPECIFIC metrics with measurement details (e.g., "Accuracy ± standard deviation" or "User satisfaction (Likert 1-5)")
-5. Provide QUANTIFIABLE expected outcomes (e.g., "≥80% accuracy" or "15-20% improvement over baseline")
-6. Make experiments realistic in scope and timeline
+2. Include 4-6 numbered methodology steps - write each step as "1. Step text\\n2. Step text\\n3. Step text" (use actual \\n between steps)
+3. List SPECIFIC required data/resources separated by " | "
+4. Include SPECIFIC metrics with measurement details separated by " | "
+5. Provide QUANTIFIABLE expected outcomes (e.g., ">=80% accuracy" or "15-20% improvement over baseline")
 
-FORMATTING RULES - MUST INCLUDE ALL 5 FIELDS:
+FORMATTING RULES:
 - hypothesis: The exact hypothesis statement
 - objective: One focused, clear sentence
-- methodology: "1. Step one 2. Step two 3. Step three 4. Step four 5. Step five"
-- required_data: "Specific dataset | Specific tool/framework | Resource | Sample size: X"
-- evaluation_metrics: "Metric 1 with unit | Metric 2 with calculation | Metric 3"
-- expected_outcome: "Specific result like: Achieves 85% accuracy with 20% improvement"
+- methodology: Steps separated by \\n like "1. First step\\n2. Second step\\n3. Third step\\n4. Fourth step"
+- required_data: Items separated by " | " like "Dataset A | Tool B | 100 participants"
+- evaluation_metrics: Metrics separated by " | " like "Accuracy (%) | F1 Score | Likert 1-5"
+- expected_outcome: Specific quantified result
 
-Return ONLY a valid JSON array with ONE experiment per hypothesis. MUST HAVE ALL 5 FIELDS:
+Return ONLY a valid JSON array with ONE experiment per hypothesis:
 [
   {{
     "hypothesis": "The exact hypothesis from above",
     "objective": "Clear one-sentence objective",
-    "methodology": "1. Step 2. Step 3. Step 4. Step 5. Step",
+    "methodology": "1. Design and prepare experimental setup\\n2. Recruit participants and collect baseline data\\n3. Implement proposed method\\n4. Run evaluation and collect results\\n5. Analyze and compare against baseline",
     "required_data": "Specific dataset | Specific tool | Hardware | Sample size: 100+ participants",
     "evaluation_metrics": "Precision and Recall | F1 Score | User satisfaction (1-5 Likert)",
-    "expected_outcome": "Achieves ≥85% accuracy with ≥20% baseline improvement"
+    "expected_outcome": "Achieves >=85% accuracy with >=20% baseline improvement"
   }}
 ]"""
     
