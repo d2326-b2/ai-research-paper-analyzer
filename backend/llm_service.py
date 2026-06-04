@@ -40,7 +40,7 @@ else:
 
 try:
     genai.configure(api_key=api_key)
-    model = genai.GenerativeModel("gemini-2.0-flash")
+    model = genai.GenerativeModel("gemini-2.5-flash")
     print("✓ Gemini model configured successfully")
 except Exception as e:
     print(f"⚠️  Warning: Gemini configuration failed: {str(e)}")
