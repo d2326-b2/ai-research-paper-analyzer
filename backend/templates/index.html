@@ -255,17 +255,26 @@
     <div id="loader" style="display:none">
       <div class="loader-card">
         <div class="loader-ring"><div></div><div></div><div></div><div></div></div>
-        <p id="loader-text">Starting analysis...</p>
+        <p id="loader-text">Step 1: Extracting text from PDF...</p>
+        <div class="loader-progress-container">
+          <div class="loader-progress"></div>
+        </div>
         <div class="loader-steps">
           <span class="lstep">Extract</span>
           <span class="larr">→</span>
+          <span class="lstep">Validate</span>
+          <span class="larr">→</span>
+          <span class="lstep">Summary</span>
+          <span class="larr">→</span>
           <span class="lstep">Concepts</span>
           <span class="larr">→</span>
-          <span class="lstep">Graph</span>
+          <span class="lstep">Relations</span>
           <span class="larr">→</span>
           <span class="lstep">Gaps</span>
           <span class="larr">→</span>
-          <span class="lstep">Hypothesis</span>
+          <span class="lstep">Hypotheses</span>
+          <span class="larr">→</span>
+          <span class="lstep">Experiments</span>
         </div>
       </div>
     </div>

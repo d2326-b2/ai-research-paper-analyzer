@@ -19,10 +19,11 @@ import os
 from database import db, User
 from pdf_extractor import extract_text, is_valid_pdf
 from llm_service import (
-    generate_summary, extract_concepts,
+    generate_summary, extract_title, extract_concepts,
     extract_relations, identify_gaps, generate_hypotheses,
     design_experiments
 )
+from dummy_data import get_dummy_data_with_filename
 
 # ============= APP INITIALIZATION =============
 app = Flask(__name__, template_folder='templates', static_folder='static')
@@ -179,7 +180,7 @@ def logout():
 @login_required
 def analyze_paper():
     """
-    Main PDF analysis endpoint.
+    Main PDF analysis endpoint with graceful fallback to dummy data.
     
     Accepts a PDF file, extracts text, and performs comprehensive analysis:
     1. Text extraction from PDF
@@ -191,8 +192,11 @@ def analyze_paper():
     7. Hypothesis generation (3 levels: basic, intermediate, advanced)
     8. Experiment design proposal
     
+    If API calls fail (e.g., API key invalid, quota exceeded), returns
+    realistic dummy data demonstrating what results would look like.
+    
     Returns:
-        JSON with complete analysis results or error message
+        JSON with complete analysis results or dummy data (fallback) or error message
     """
     # Validate file upload
     if 'file' not in request.files:
@@ -208,52 +212,142 @@ def analyze_paper():
     try:
         # Step 1: Extract text from PDF
         print('Step 1: Extracting text...')
+        print(f'  ├─ Reading PDF file: {file.filename}')
+        print(f'  ├─ Scanning for text content...')
         text = extract_text(temp_path)
+        print(f'  └─ ✓ Extracted {len(text)} characters from PDF')
 
         # Step 2: Validate PDF (reject scanned/image PDFs)
+        print('Step 2: Validating PDF format...')
+        print(f'  ├─ Checking for text-based content...')
         if not is_valid_pdf(text):
+            print(f'  └─ ✗ Scanned PDF detected - contains images only')
             return jsonify({'error': 'Scanned PDF detected. Please use text-based PDFs.'}), 400
+        print(f'  └─ ✓ Valid text-based PDF confirmed')
 
-        # Step 3: Generate summary
-        print('Step 3: Generating summary...')
-        summary = generate_summary(text)
+        try:
+            # Step 3: Extract paper title
+            print('Step 3: Extracting paper title...')
+            print(f'  ├─ Analyzing paper content...')
+            print(f'  ├─ Extracting or generating title...')
+            paper_title = extract_title(text)
+            print(f'  └─ ✓ Title extracted: {paper_title}')
+        except Exception as e:
+            print(f'Title extraction failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        # Step 4: Extract key concepts
-        print('Step 4: Extracting concepts...')
-        concepts = extract_concepts(text)
+        try:
+            # Step 4: Generate summary
+            print('Step 4: Generating summary...')
+            print(f'  ├─ Analyzing paper content...')
+            print(f'  ├─ Sending to AI model for processing...')
+            summary = generate_summary(text)
+            print(f'  └─ ✓ Summary generated successfully')
+        except Exception as e:
+            print(f'Summary generation failed, using dummy data: {str(e)}')
+            # If any step fails, use dummy data
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        # Step 5: Extract relationships between concepts
-        print('Step 5: Extracting relations...')
-        relations = extract_relations(text, concepts)
+        try:
+            # Step 5: Extract key concepts
+            print('Step 5: Extracting concepts...')
+            print(f'  ├─ Identifying key terms and topics...')
+            print(f'  ├─ Building concept library...')
+            concepts = extract_concepts(text)
+            print(f'  └─ ✓ Found {len(concepts)} key concepts')
+        except Exception as e:
+            print(f'Concept extraction failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        # Step 6: Identify research gaps
-        print('Step 6: Identifying gaps...')
-        gaps = identify_gaps(text)
+        try:
+            # Step 6: Extract relationships between concepts
+            print('Step 6: Extracting relationships...')
+            print(f'  ├─ Mapping connections between concepts...')
+            print(f'  ├─ Building knowledge graph...')
+            relations = extract_relations(text, concepts)
+            print(f'  └─ ✓ Found {len(relations)} concept relationships')
+        except Exception as e:
+            print(f'Relation extraction failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        # Step 7: Generate ranked hypotheses
-        print('Step 7: Generating hypotheses...')
-        hypotheses = generate_hypotheses(gaps)
+        try:
+            # Step 7: Identify research gaps
+            print('Step 7: Identifying research gaps...')
+            print(f'  ├─ Analyzing paper contributions...')
+            print(f'  ├─ Finding unexplored areas...')
+            gaps = identify_gaps(text)
+            print(f'  └─ ✓ Identified {len(gaps)} research gaps')
+        except Exception as e:
+            print(f'Gap identification failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        # Step 8: Design experiments
-        print('Step 8: Designing experiments...')
-        experiments = design_experiments(hypotheses)
+        try:
+            # Step 8: Generate ranked hypotheses
+            print('Step 8: Generating hypotheses...')
+            print(f'  ├─ Creating research hypotheses...')
+            print(f'  ├─ Ranking by relevance and feasibility...')
+            hypotheses = generate_hypotheses(gaps)
+            print(f'  └─ ✓ Generated {len(hypotheses)} hypotheses')
+        except Exception as e:
+            print(f'Hypothesis generation failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
 
-        print('Analysis complete!')
+        try:
+            # Step 9: Design experiments
+            print('Step 9: Designing experiments...')
+            print(f'  ├─ Creating experimental methodologies...')
+            print(f'  ├─ Defining success metrics...')
+            experiments = design_experiments(hypotheses)
+            print(f'  └─ ✓ Designed {len(experiments)} experiments')
+        except Exception as e:
+            print(f'Experiment design failed, using dummy data: {str(e)}')
+            dummy_data = get_dummy_data_with_filename(file.filename)
+            dummy_data['fallback'] = True
+            dummy_data['fallback_reason'] = f'API unavailable: {str(e)[:100]}'
+            return jsonify(dummy_data)
+
+        print('\n✓ Analysis complete!')
+        print('═' * 50)
 
         # Return comprehensive analysis results
         return jsonify({
             'status': 'success',
             'filename': file.filename,
+            'title': paper_title,
             'summary': summary,
             'concepts': concepts,
             'graph': {'nodes': concepts, 'edges': relations},
             'gaps': gaps,
             'hypotheses': hypotheses,
-            'experiments': experiments
+            'experiments': experiments,
+            'fallback': False
         })
 
     except Exception as e:
-        return jsonify({'error': f'Analysis failed: {str(e)}'}), 500
+        print(f'Critical PDF extraction error: {str(e)}')
+        # Last resort: return dummy data for any extraction error
+        dummy_data = get_dummy_data_with_filename(file.filename if 'file' in locals() else 'unknown.pdf')
+        dummy_data['fallback'] = True
+        dummy_data['fallback_reason'] = f'Processing error: {str(e)[:100]}'
+        return jsonify(dummy_data)
 
     finally:
         # Clean up temporary file

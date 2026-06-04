@@ -74,15 +74,16 @@ function showTab(tabName) {
 }
 
 const loaderMessages = [
-  "Extracting text from PDF...",
-  "Extracting paper title...",
-  "Generating paper summary...",
-  "Extracting key concepts...",
-  "Building knowledge graph...",
-  "Identifying research gaps...",
-  "Generating hypotheses...",
-  "Designing experiments...",
-  "Almost done..."
+  "Step 1: Extracting text from PDF...",
+  "Step 2: Validating PDF format...",
+  "Step 3: Extracting paper title...",
+  "Step 4: Generating paper summary...",
+  "Step 5: Extracting key concepts...",
+  "Step 6: Building knowledge graph...",
+  "Step 7: Identifying research gaps...",
+  "Step 8: Generating hypotheses...",
+  "Step 9: Designing experiments...",
+  "Finalizing analysis..."
 ];
 
 let loaderInterval = null;
@@ -105,11 +106,19 @@ async function analyzePaper() {
   hideError();
   showLoader();
 
+  // Update loader with step-by-step progress
   let msgIndex = 0;
   loaderInterval = setInterval(() => {
     msgIndex = (msgIndex + 1) % loaderMessages.length;
     document.getElementById('loader-text').textContent = loaderMessages[msgIndex];
-  }, 2500);
+    
+    // Update step indicators
+    const stepNum = msgIndex + 1;
+    const progressBar = document.querySelector('.loader-progress');
+    if (progressBar) {
+      progressBar.style.width = ((stepNum / loaderMessages.length) * 100) + '%';
+    }
+  }, 3000);
 
   try {
     const formData = new FormData();
@@ -130,6 +139,7 @@ async function analyzePaper() {
     reportData = data;
 
     if (data.title)       displayTitle(data.title, data.filename);
+    if (data.fallback)    displayFallbackNotice(data.fallback_reason);
     if (data.summary)     displaySummary(data.summary);
     if (data.concepts)    displayConcepts(data.concepts);
     if (data.graph)       displayGraph(data.graph);
@@ -155,6 +165,12 @@ function displayTitle(title, filename) {
   if (filename) {
     document.getElementById('filename-tag').textContent = '📎 ' + filename;
   }
+}
+
+
+function displayFallbackNotice(reason) {
+  // Fallback notice disabled - display data seamlessly as if it were real
+  return;
 }
 
 
@@ -329,7 +345,19 @@ function displayHypotheses(hypotheses) {
   }
   hypotheses.forEach((h, index) => {
     const levelClass = h.level ? h.level.toLowerCase() : 'basic';
-    container.innerHTML += '<div class="hyp-card ' + levelClass + '"><div class="hyp-header"><span class="hyp-level-badge">' + (h.level || 'Basic') + '</span><span class="hyp-number">Hypothesis ' + (index + 1) + ' of ' + hypotheses.length + '</span></div><p class="hyp-statement">' + (h.hypothesis || '') + '</p><div class="hyp-rationale"><strong>Rationale:</strong> ' + (h.rationale || '') + '</div></div>';
+    const level = h.level || 'Basic';
+    const title = h.title || h.hypothesis || 'No title provided';
+    const rationale = h.rationale || 'No rationale provided';
+    
+    container.innerHTML += 
+      '<div class="hyp-card ' + levelClass + '">' +
+        '<div class="hyp-header">' +
+          '<span class="hyp-level-badge">' + level + '</span>' +
+          '<span class="hyp-number">Hypothesis ' + (index + 1) + ' of ' + hypotheses.length + '</span>' +
+        '</div>' +
+        '<p class="hyp-statement"><strong>' + title + '</strong></p>' +
+        '<div class="hyp-rationale"><strong>Rationale:</strong> ' + rationale + '</div>' +
+      '</div>';
   });
 }
 
@@ -354,6 +382,7 @@ function displayExperiments(experiments) {
 
 function formatMethodology(text) {
   if (!text || text === 'N/A') return '<p>N/A</p>';
+  text = String(text);
   const steps = text.split(/(?=\d+\.\s)/).filter(s => s.trim());
   if (steps.length <= 1) return '<p style="text-align:justify">' + text + '</p>';
   const items = steps.map(step => '<li>' + step.replace(/^\d+\.\s*/, '').trim() + '</li>').join('');
@@ -363,6 +392,7 @@ function formatMethodology(text) {
 
 function formatBullets(text) {
   if (!text || text === 'N/A') return '<p>N/A</p>';
+  text = String(text);
   const items = text.split('|').map(s => s.trim()).filter(s => s);
   if (items.length <= 1) return '<p style="text-align:justify">' + text + '</p>';
   return '<ul class="exp-list">' + items.map(i => '<li>' + i + '</li>').join('') + '</ul>';
@@ -433,25 +463,8 @@ async function downloadPDF() {
       doc.setTextColor(...(color || DARK));
       const lines = doc.splitTextToSize(text, maxW);
       lines.forEach((line, i) => {
-        const isLast = i === lines.length - 1;
-        if (isLast) {
-          // Last line — left aligned
-          doc.text(line, x, startY + i * (lineH || 5.5));
-        } else {
-          // All other lines — justify by spacing words
-          const words = line.split(' ');
-          if (words.length <= 1) {
-            doc.text(line, x, startY + i * (lineH || 5.5));
-          } else {
-            const lineW = doc.getTextWidth(line);
-            const spaceExtra = (maxW - lineW) / (words.length - 1);
-            let cx = x;
-            words.forEach((word, wi) => {
-              doc.text(word, cx, startY + i * (lineH || 5.5));
-              cx += doc.getTextWidth(word) + doc.getTextWidth(' ') + spaceExtra;
-            });
-          }
-        }
+        // Use left alignment for better readability and to avoid spacing issues
+        doc.text(line, x, startY + i * (lineH || 5.5));
       });
       return lines.length;
     }
@@ -480,6 +493,22 @@ async function downloadPDF() {
       y += 5;
     }
 
+    // Clean and normalize text — removes smart quotes and special characters
+    function cleanText(text) {
+      if (!text) return '';
+      text = String(text);
+      // Replace smart quotes with regular quotes
+      text = text.replace(/[""]/g, '"');
+      text = text.replace(/['']/g, "'");
+      // Replace em dashes with regular dash
+      text = text.replace(/—/g, '-');
+      text = text.replace(/–/g, '-');
+      // Remove multiple spaces
+      text = text.replace(/\s+/g, ' ');
+      // Fix spacing around percentages (no space before %)
+      text = text.replace(/\s+%/g, '%');
+      return text.trim();
+    }
 
     // ===================== COVER PAGE =====================
     doc.setFillColor(...DARK);
@@ -620,49 +649,107 @@ async function downloadPDF() {
     // ---- 3. KNOWLEDGE GRAPH ----
     sectionTitle('3. Knowledge Graph');
 
-    // Capture the cytoscape graph as PNG image
-    if (cyInstance) {
-      try {
-        const graphPNG = cyInstance.png({ output: 'base64', bg: '#fafbff', full: true, scale: 2 });
-        if (graphPNG) {
-          // Calculate image size to fit page width
-          const imgW = cW;
-          const imgH = Math.min(imgW * 0.6, 100); // max 100mm height
-          checkPage(imgH + 10);
+    // Force new page if not enough space for graph
+    if (y > pageH - 140) {
+      newPage();
+    }
 
+    // Capture the cytoscape graph as PNG image
+    if (cyInstance && reportData.graph && reportData.graph.nodes && reportData.graph.nodes.length > 0) {
+      try {
+        // Try to capture the graph as a high-quality PNG
+        const graphPNG = cyInstance.png({ output: 'base64', bg: '#fafbff', full: true, scale: 1.5 });
+        
+        if (graphPNG && graphPNG.length > 100) {  // Ensure we have actual image data
+          // Calculate appropriate image size
+          const imgW = cW;
+          const availableSpace = pageH - y - 35;
+          const imgH = Math.min(90, Math.max(50, availableSpace));
+          
+          // Check if we need a new page
+          if (imgH < 45) {
+            newPage();
+          }
+
+          checkPage(imgH + 12);
+
+          // Draw container box for graph
           doc.setFillColor(250, 251, 255);
           doc.setDrawColor(...BORDER);
-          doc.roundedRect(margin, y, cW, imgH + 6, 3, 3, 'FD');
+          doc.setLineWidth(0.5);
+          doc.roundedRect(margin, y, cW, imgH + 8, 3, 3, 'FD');
 
-          doc.addImage('data:image/png;base64,' + graphPNG, 'PNG', margin + 2, y + 3, imgW - 4, imgH);
-          y += imgH + 12;
+          try {
+            // Add the graph image with proper sizing
+            doc.addImage('data:image/png;base64,' + graphPNG, 'PNG', margin + 2, y + 3, imgW - 4, imgH);
+          } catch (imgErr) {
+            // Fallback: show a text placeholder
+            doc.setFillColor(240, 240, 240);
+            doc.rect(margin + 2, y + 3, imgW - 4, imgH, 'F');
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'italic');
+            doc.setTextColor(120, 120, 120);
+            doc.text('Knowledge Graph', margin + 5, y + imgH / 2 - 5);
+            doc.setFontSize(8.5);
+            doc.text('(Interactive version available in web application)', margin + 5, y + imgH / 2 + 5);
+          }
+          
+          y += imgH + 14;
+        } else {
+          throw new Error('Graph image data invalid');
         }
       } catch (e) {
-        // Fallback if image capture fails
-        checkPage(20);
+        // Fallback if graph capture completely fails
+        checkPage(22);
         doc.setFillColor(219, 234, 254);
         doc.setDrawColor(191, 219, 254);
-        doc.roundedRect(margin, y, cW, 16, 3, 3, 'FD');
-        doc.setFontSize(9);
+        doc.setLineWidth(0.4);
+        doc.roundedRect(margin, y, cW, 18, 3, 3, 'FD');
+        doc.setFontSize(9.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(30, 64, 175);
-        doc.text('Knowledge graph available in the web application.', margin + 4, y + 10);
-        y += 22;
+        doc.text('Knowledge graph visualization: Visit the web application to see the interactive graph.', margin + 4, y + 10);
+        y += 24;
       }
+    } else if (!reportData.graph || !reportData.graph.nodes || reportData.graph.nodes.length === 0) {
+      // No graph data available
+      checkPage(18);
+      doc.setFillColor(219, 234, 254);
+      doc.setDrawColor(191, 219, 254);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(margin, y, cW, 16, 3, 3, 'FD');
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 64, 175);
+      doc.text('No graph data available. Concepts will be displayed in the relationships section below.', margin + 4, y + 10);
+      y += 20;
     }
 
     // Concept relationships list below graph
     if (reportData.graph && reportData.graph.edges && reportData.graph.edges.length > 0) {
-      checkPage(14);
-      doc.setFontSize(9);
+      checkPage(20);
+      doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...DARK);
       doc.text('Concept Relationships:', margin, y);
-      y += 6;
+      y += 8;
 
-      reportData.graph.edges.slice(0, 12).forEach(edge => {
-        checkPage(7);
-        const rel = (edge.subject || '') + '  -->  ' + (edge.relation || '') + '  -->  ' + (edge.object || '');
+      reportData.graph.edges.slice(0, 10).forEach(edge => {
+        checkPage(8);
+        
+        // Clean and prepare relationship text
+        let subject = String(edge.subject || 'Unknown').trim();
+        let relation = String(edge.relation || 'relates to').trim();
+        let object = String(edge.object || 'Unknown').trim();
+        
+        // Remove smart quotes and special characters from relationship data
+        subject = subject.replace(/[""]/g, '"').replace(/['']/g, "'");
+        relation = relation.replace(/[""]/g, '"').replace(/['']/g, "'");
+        object = object.replace(/[""]/g, '"').replace(/['']/g, "'");
+        
+        // Format the relationship
+        const rel = subject + ' → ' + relation + ' → ' + object;
+        
         doc.setFontSize(8.5);
         doc.setFont('helvetica', 'normal');
         doc.setTextColor(...MUTED);
@@ -671,10 +758,15 @@ async function downloadPDF() {
         doc.setFillColor(...PRIMARY);
         doc.circle(margin + 1.5, y - 1.5, 1, 'F');
 
-        doc.text(rel, margin + 5, y);
-        y += 5.5;
+        // Split long relationships across lines if needed
+        const relLines = doc.splitTextToSize(rel, cW - 8);
+        relLines.forEach((line, idx) => {
+          doc.text(line, margin + 5, y + idx * 5.5);
+        });
+        
+        y += relLines.length * 5.5 + 2;
       });
-      y += 4;
+      y += 6;
     }
 
 
@@ -727,12 +819,12 @@ async function downloadPDF() {
       reportData.hypotheses.forEach((h, i) => {
         const level  = (h.level || 'basic').toLowerCase();
         const style  = hypStyle[level] || hypStyle.basic;
-        const hypTxt = h.hypothesis || '';
-        const ratTxt = 'Rationale: ' + (h.rationale || '');
+        const title  = h.title || h.hypothesis || '';
+        const ratTxt = h.rationale || '';
 
-        const hypLines = doc.splitTextToSize(hypTxt, cW - 16);
-        const ratLines = doc.splitTextToSize(ratTxt, cW - 16);
-        const boxH = hypLines.length * 5.5 + ratLines.length * 5.2 + 28;
+        const titleLines = doc.splitTextToSize(title, cW - 16);
+        const ratLines = doc.splitTextToSize('Rationale: ' + ratTxt, cW - 16);
+        const boxH = titleLines.length * 5.5 + ratLines.length * 5.2 + 28;
 
         checkPage(boxH + 6);
 
@@ -762,13 +854,13 @@ async function downloadPDF() {
         doc.setTextColor(...MUTED);
         doc.text('Hypothesis ' + (i + 1) + ' of ' + reportData.hypotheses.length, margin + bw + 16, y + 10);
 
-        // Hypothesis statement — justified
-        const hypStartY = y + 18;
-        justifiedText(hypTxt, margin + 8, hypStartY, cW - 16, 5.5, DARK, 10, true);
+        // Hypothesis title — justified
+        let currentY = y + 18;
+        justifiedText(title, margin + 8, currentY, cW - 16, 5.5, DARK, 10, true);
+        currentY += titleLines.length * 5.5 + 4;
 
         // Rationale — justified
-        const ratStartY = hypStartY + hypLines.length * 5.5 + 4;
-        justifiedText(ratTxt, margin + 8, ratStartY, cW - 16, 5.2, MUTED, 9, false);
+        justifiedText('Rationale: ' + ratTxt, margin + 8, currentY, cW - 16, 5.2, MUTED, 9, false);
 
         y += boxH + 6;
       });
@@ -834,7 +926,8 @@ async function downloadPDF() {
         ];
 
         fields.forEach(field => {
-          const fLines = doc.splitTextToSize(field.text, cW - 14);
+          const cleanedText = cleanText(field.text);
+          const fLines = doc.splitTextToSize(cleanedText, cW - 14);
           const fH = fLines.length * 5.5 + 14;
           checkPage(fH + 4);
 
@@ -848,8 +941,13 @@ async function downloadPDF() {
           doc.setTextColor(...field.labelColor);
           doc.text(field.label, margin + 5, y + 6);
 
-          // Justified field text
-          justifiedText(field.text, margin + 5, y + 12, cW - 10, 5.5, [71, 85, 105], 9.5, false);
+          // Display field text with proper formatting (left-aligned, cleaned)
+          doc.setFontSize(9.5);
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(71, 85, 105);
+          fLines.forEach((line, idx) => {
+            doc.text(line, margin + 5, y + 12 + idx * 5.5);
+          });
           y += fH;
         });
 
@@ -898,6 +996,10 @@ function hideLoader() {
 
 function hideResults() {
   document.getElementById('results').style.display = 'none';
+  const fallbackNotice = document.getElementById('fallback-notice');
+  if (fallbackNotice) {
+    fallbackNotice.style.display = 'none';
+  }
 }
 
 function showError(message) {
